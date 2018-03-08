@@ -13,20 +13,29 @@ end
 words = sort(words);
 voc(:,1) = unique(words)';
 voc(:,2) = cellfun(@(x) sum(ismember(words,x)),voc(:,1),'un',0);
-input = zeros(size(questions,1),31);
+
 %%
-for i = 2:20%size(questions,1)
+input = zeros(size(questions,1),31);
+target = zeros(size(answers,1),31);
+for i = 1:size(questions,1)
     cell = questions(i,1);
     qwords = strsplit(cell{1});
     indices = cellfun(@(x) find(strcmp(voc(:,1),x)),qwords);
     input(i,1:size(indices,2)) = indices;
 end
+for i = 1:size(answers,1)
+    cell = answers(i,1);
+    qwords = strsplit(cell{1},', ');
+    indices = cellfun(@(x) find(strcmp(voc(:,1),x)),qwords);
+    target(i,1:size(indices,2)) = indices;
+end
 %% Create and train LSTM Network
-inputSize = 'auto';
-outputSize = 100; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
-outputMode = 'last'; % otherwise 'sequence'
-numClasses = 37;
-maxEpochs = 50;
+clc
+inputSize = 1;
+outputSize = 10; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
+outputMode = 'sequence'; % otherwise 'sequence'/'last'
+numClasses = 500;
+maxEpochs = 5;
 miniBatchSize = 31;
 shuffle = 'never';
 
@@ -35,16 +44,15 @@ options = trainingOptions('sgdm', ...
     'MiniBatchSize',miniBatchSize, ...
     'Shuffle', shuffle);
 
-layers = [
+layers = [...
     sequenceInputLayer(inputSize)
     lstmLayer(outputSize,'OutputMode',outputMode)
     fullyConnectedLayer(numClasses)
     softmaxLayer
     classificationLayer];
-
+X = num2cell(input,2);
+Y = num2cell(categorical(target),2);
 net = trainNetwork(X,Y,layers,options);
-
-
 
 %% Output query representation
 
