@@ -22,6 +22,28 @@ for i = 2:20%size(questions,1)
     input(i,1:size(indices,2)) = indices;
 end
 %% Create and train LSTM Network
+inputSize = 'auto';
+outputSize = 100; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
+outputMode = 'last'; % otherwise 'sequence'
+numClasses = 37;
+maxEpochs = 50;
+miniBatchSize = 31;
+shuffle = 'never';
+
+options = trainingOptions('sgdm', ...
+    'MaxEpochs',maxEpochs, ...
+    'MiniBatchSize',miniBatchSize, ...
+    'Shuffle', shuffle);
+
+layers = [
+    sequenceInputLayer(inputSize)
+    lstmLayer(outputSize,'OutputMode',outputMode)
+    fullyConnectedLayer(numClasses)
+    softmaxLayer
+    classificationLayer];
+
+net = trainNetwork(X,Y,layers,options);
+
 
 
 %% Output query representation
