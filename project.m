@@ -12,7 +12,7 @@ outputSize = 100; % Sort of Overfitting parameter. Higher allows for more comple
 outputMode = 'last'; % otherwise 'sequence'
 numClasses = 37;
 maxEpochs = 50;
-miniBatchSize = 27;
+miniBatchSize = 31;
 shuffle = 'never';
 
 options = trainingOptions('sgdm', ...
