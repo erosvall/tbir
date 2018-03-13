@@ -7,8 +7,7 @@ answers = file(3:2:end,1);
 %% Transform to numerical representation
 words = {};
 for i = 2:size(file,1)
-    cell = file(i,1);
-    words = [words strsplit(erase(cell{1},','))];
+    words = [words strsplit(erase(char(file(i,1)),','))];
 end
 words = sort(words);
 voc(:,1) = unique(words)';
@@ -16,16 +15,14 @@ voc(:,2) = cellfun(@(x) sum(ismember(words,x)),voc(:,1),'un',0);
 
 %%
 input = zeros(size(questions,1),31);
-target = zeros(size(answers,1),31);
+target = zeros(size(answers,1),7);
 for i = 1:size(questions,1)
-    cell = questions(i,1);
-    qwords = strsplit(cell{1});
+    qwords = strsplit(char(questions(i,1)));
     indices = cellfun(@(x) find(strcmp(voc(:,1),x)),qwords);
     input(i,1:size(indices,2)) = indices;
 end
 for i = 1:size(answers,1)
-    cell = answers(i,1);
-    qwords = strsplit(cell{1},', ');
+    qwords = strsplit(char(answers(i,1)),', ');
     indices = cellfun(@(x) find(strcmp(voc(:,1),x)),qwords);
     target(i,1:size(indices,2)) = indices;
 end
