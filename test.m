@@ -29,6 +29,6 @@ for i = 1:size(answers,1)
     target(i,1:size(indices,2)) = indices;
 end
 %% 
-str = questions(3:5,1);
-ind = str2ind(str,voc)
-ind2str(ind,voc)
+str = questions(2:3,1);
+[ind,voc] = str2ind(str,voc);
+ind2str(ind,voc);

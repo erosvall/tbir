@@ -1,6 +1,6 @@
 function [ind,voc] = str2ind(str,voc)
 % Convert from sentence to word-index-matrix
-% while adding new words to the vocabulary
+% while updating the vocabulary
 %
 % str - m*1 cell array containing strings
 % voc - s*2 cell array
