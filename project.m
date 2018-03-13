@@ -22,7 +22,7 @@ for i = 2:20%size(questions,1)
     input(i,1:size(indices,2)) = indices;
 end
 %% Create and train LSTM Network
-inputSize = 'auto';
+inputSize = 12;
 outputSize = 100; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
 outputMode = 'last'; % otherwise 'sequence'
 numClasses = 37;
