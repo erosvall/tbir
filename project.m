@@ -33,11 +33,14 @@ options = trainingOptions('sgdm', ...
     'MiniBatchSize',miniBatchSize, ...
     'Shuffle', shuffle);
 
+layers = [...
     sequenceInputLayer(inputSize)
     lstmLayer(outputSize,'OutputMode',outputMode)
     fullyConnectedLayer(numClasses)
     softmaxLayer
     classificationLayer];
+X = num2cell(input,2);
+Y = num2cell(categorical(target),2);
 net = trainNetwork(X,Y,layers,options);
 
 %% Output query representation
