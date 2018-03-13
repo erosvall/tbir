@@ -13,9 +13,7 @@ end
 words = sort(words);
 voc(:,1) = unique(words)';
 voc(:,2) = cellfun(@(x) sum(ismember(words,x)),voc(:,1),'un',0);
-input = zeros(size(questions,1),31);
 %%
-for i = 2:20%size(questions,1)
     cell = questions(i,1);
     qwords = strsplit(cell{1});
     indices = cellfun(@(x) find(strcmp(voc(:,1),x)),qwords);
@@ -35,16 +33,12 @@ options = trainingOptions('sgdm', ...
     'MiniBatchSize',miniBatchSize, ...
     'Shuffle', shuffle);
 
-layers = [
     sequenceInputLayer(inputSize)
     lstmLayer(outputSize,'OutputMode',outputMode)
     fullyConnectedLayer(numClasses)
     softmaxLayer
     classificationLayer];
-
 net = trainNetwork(X,Y,layers,options);
-
-
 
 %% Output query representation
 
