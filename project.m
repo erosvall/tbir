@@ -26,20 +26,24 @@ clear;
 %     target(i,1:size(indices,2)) = indices;
 % end
 load('traindata.mat');
+% target = [target zeros(6795,24)];
+target = target(:,1);
 %% Create and train LSTM Network
 clc
 inputSize = 1;
 outputSize = 10; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
-outputMode = 'sequence'; % otherwise 'sequence'/'last'
-numClasses = 500;
-maxEpochs = 5;
+outputMode = 'last'; % otherwise 'sequence'/'last'
+numClasses = 473;
+maxEpochs = 50;
 miniBatchSize = 31;
 shuffle = 'never';
 
 options = trainingOptions('sgdm', ...
+    'ExecutionEnvironment','gpu',...
     'MaxEpochs',maxEpochs, ...
     'MiniBatchSize',miniBatchSize, ...
-    'Shuffle', shuffle);
+    'Shuffle', shuffle, ...
+    'Plots', 'none');
 
 layers = [...
     sequenceInputLayer(inputSize)
@@ -47,11 +51,13 @@ layers = [...
     fullyConnectedLayer(numClasses)
     softmaxLayer
     classificationLayer];
-X = num2cell(input,2);
-Y = num2cell(categorical(target),2);
-net = trainNetwork(X,Y,layers,options);
+C = num2cell(input,2);
+% Y = num2cell(categorical(target),2);
+Y = categorical(target);
+net = trainNetwork(C,Y,layers,options);
 
 %% Output query representation
 
 
 %% Output Answer to query
+trainAnswers = classify(net,C,'MiniBatchSize',miniBatchSize);
