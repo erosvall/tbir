@@ -11,6 +11,7 @@ from keras.preprocessing.text import one_hot, Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 import numpy as np
 from keras.layers.recurrent import LSTM
+from keras.utils import plot_model
 
 corpus = open("qa.894.raw.train.txt").read().lower().splitlines()
 
@@ -36,12 +37,13 @@ train_x = train_x.reshape((1,N,padding))
 
 ## Build and train Autoencoder
 autoencoder = Sequential()
-encoder = LSTM(dim, input_shape = (N,padding) , return_sequences=True)
-decoder = LSTM(padding, input_shape = (N, dim), return_sequences=True)
+encoder = LSTM(dim, input_shape = (N,padding) , return_sequences=True) #  , return_sequences=True
+decoder = LSTM(padding, input_shape = (N, dim) , return_sequences=True)
 autoencoder.add(encoder)
 autoencoder.add(decoder)
 autoencoder.compile(loss='categorical_crossentropy', optimizer='RMSprop')
-autoencoder.fit(train_x,train_x, epochs = 10)
+autoencoder.fit(train_x,train_x, epochs = 1)
+
 
 print(autoencoder.predict(train_x))
 print(train_x)
