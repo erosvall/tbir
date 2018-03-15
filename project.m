@@ -45,8 +45,9 @@ options = trainingOptions('sgdm', ...
     'Shuffle', shuffle, ...
     'Plots', 'none');
 
-layers = [...
+encoding_layers = [...
     sequenceInputLayer(inputSize)
+
     lstmLayer(outputSize,'OutputMode',outputMode)
     fullyConnectedLayer(numClasses)
     softmaxLayer
@@ -55,6 +56,7 @@ C = num2cell(input,2);
 % Y = num2cell(categorical(target),2);
 Y = categorical(target);
 net = trainNetwork(C,Y,layers,options);
+
 
 %% Output query representation
 
