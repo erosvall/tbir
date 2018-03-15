@@ -26,50 +26,40 @@ clear;
 %     target(i,1:size(indices,2)) = indices;
 % end
 load('traindata.mat');
+% target = [target zeros(6795,24)];
+target = target(:,1);
 %% Create and train LSTM Network
 clc
 inputSize = 1;
-outputSize = 6; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
-outputMode = 'sequence'; % otherwise 'sequence'/'last'
-numClasses = 500;
-maxEpochs = 5;
+outputSize = 10; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
+outputMode = 'last'; % otherwise 'sequence'/'last'
+numClasses = 473;
+maxEpochs = 50;
 miniBatchSize = 31;
 shuffle = 'never';
 
 options = trainingOptions('sgdm', ...
+    'ExecutionEnvironment','gpu',...
     'MaxEpochs',maxEpochs, ...
     'MiniBatchSize',miniBatchSize, ...
-    'Shuffle', shuffle);
+    'Shuffle', shuffle, ...
+    'Plots', 'none');
 
 encoding_layers = [...
     sequenceInputLayer(inputSize)
-    lstmLayer(outputSize,'OutputMode',outputMode)];
 
-X = num2cell(input,2);
-Y = num2cell(categorical(target),2);
-encoder = trainNetwork(X,encoding_layers,options);
+    lstmLayer(outputSize,'OutputMode',outputMode)
+    fullyConnectedLayer(numClasses)
+    softmaxLayer
+    classificationLayer];
+C = num2cell(input,2);
+% Y = num2cell(categorical(target),2);
+Y = categorical(target);
+net = trainNetwork(C,Y,layers,options);
 
-
-decoding_layers = [sequentialInputLayer(outputSize)
-    lstmLayer(31,'OutputMode',outputMode)
-    regressionLayer];
-
-inputSize = 1;
-outputSize = 6; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
-outputMode = 'sequence'; % otherwise 'sequence'/'last'
-numClasses = 500;
-maxEpochs = 5;
-miniBatchSize = 31;
-shuffle = 'never';
-
-decoder_options = trainingOptions('sgdm', ...
-    'MaxEpochs',maxEpochs, ...
-    'MiniBatchSize',miniBatchSize, ...
-    'Shuffle', shuffle);
-
-decoder =  trainNetwork(decoding_layers,Y,decoding_layers,decoder_options);
 
 %% Output query representation
 
 
 %% Output Answer to query
+trainAnswers = classify(net,C,'MiniBatchSize',miniBatchSize);
