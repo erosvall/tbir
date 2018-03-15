@@ -29,7 +29,7 @@ end
 %% Create and train LSTM Network
 clc
 inputSize = 1;
-outputSize = 10; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
+outputSize = 6; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
 outputMode = 'sequence'; % otherwise 'sequence'/'last'
 numClasses = 500;
 maxEpochs = 5;
@@ -41,15 +41,33 @@ options = trainingOptions('sgdm', ...
     'MiniBatchSize',miniBatchSize, ...
     'Shuffle', shuffle);
 
-layers = [...
+encoding_layers = [...
     sequenceInputLayer(inputSize)
-    lstmLayer(outputSize,'OutputMode',outputMode)
-    fullyConnectedLayer(numClasses)
-    softmaxLayer
-    classificationLayer];
+    lstmLayer(outputSize,'OutputMode',outputMode)];
+
 X = num2cell(input,2);
 Y = num2cell(categorical(target),2);
-net = trainNetwork(X,Y,layers,options);
+encoder = trainNetwork(X,encoding_layers,options);
+
+
+decoding_layers = [sequentialInputLayer(outputSize)
+    lstmLayer(31,'OutputMode',outputMode)
+    regressionLayer];
+
+inputSize = 1;
+outputSize = 6; % Sort of Overfitting parameter. Higher allows for more complex models, but with overfitting
+outputMode = 'sequence'; % otherwise 'sequence'/'last'
+numClasses = 500;
+maxEpochs = 5;
+miniBatchSize = 31;
+shuffle = 'never';
+
+decoder_options = trainingOptions('sgdm', ...
+    'MaxEpochs',maxEpochs, ...
+    'MiniBatchSize',miniBatchSize, ...
+    'Shuffle', shuffle);
+
+decoder =  trainNetwork(decoding_layers,Y,decoding_layers,decoder_options);
 
 %% Output query representation
 
