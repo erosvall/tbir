@@ -20,7 +20,7 @@ def preprocess(text,token):
 	text = token.texts_to_sequences(text)
 	text = np.array(text)
 	text = pad_sequences(text)
-	text = to_categorical(text,len(token.word_index.items()))
+	text = to_categorical(text,len(token.word_index.items())+1)
 	(N,sequence,voc) = text.shape
 	return text, N, sequence, voc
 
@@ -36,6 +36,7 @@ def load_dataset(filename,k = 0,token=None):
 	return x,t,N,sequence,voc,token
 
 def build_autoencoder(l1,l2,voc,x,e):
+	print(x.shape)
 	autoencoder = Sequential()
 	autoencoder.add(LSTM(l1,input_shape = (None,voc), return_sequences=True))
 	#autoencoder.add(LSTM(l2,return_sequences=True))
@@ -47,14 +48,16 @@ def build_autoencoder(l1,l2,voc,x,e):
 	return autoencoder
 
 def build_classifier(source_model,voc,x,t,e,l1,l2):
+	print(x.shape,t.shape)
 	classifier = Sequential()
 	#Think we may need to work with a masking layer here to avoid the zeros
-	classifier.add(LSTM(l1,input_shape=(None,voc)))
+	classifier.add(LSTM(l1,input_shape=(None,voc), return_sequences=True))
 	#classifier.add(LSTM(l2,return_sequences=True))
 	classifier.layers[0].set_weights(source_model.layers[0].get_weights())
+	classifier.layers[0].trainable = False # Ensure that we don't change representation weights
 	#classifier.layers[1].set_weights(source_model.layers[1].get_weights())
 	classifier.add(Dense(voc,activation='softmax'))
-	classifier.compile(loss='categorical_crossentropy',optimizer='Adam',metrics = ['acc'])
+	classifier.compile(loss='categorical_crossentropy',optimizer='RMSprop',metrics = ['acc'])
 	classifier.fit(x,t, epochs = e)
 	# We should look at fine tuning as well, basically evaluate  on train_t
 	return classifier
@@ -70,17 +73,15 @@ def sequences_to_text(token,x):
 	return sentence_list
 
 #Dimensionality reduction in encoder1 and encoder 2
-latent_dimension1 = 140 
-latent_dimension2 = 50
-epochs = 10
-load_data = True
-file_id = 'Autoencoder_' +str(epochs)+'_'+ str(latent_dimension1) + '_' + str(latent_dimension2) +'.h5'
+ld1 = 140 
+ld2 = 50
+epochs = 2
+file_id = 'Autoencoder_' +str(epochs)+'_'+ str(ld1) + '_' + str(ld2) +'.h5'
 
 
-if load_data:
-	# This function fetches the dataset from the file and fills both X and T with k number of datapoints
-	train_x, train_t,train_N,train_sequence,train_voc,train_token = load_dataset("qa.894.raw.train.txt",1000)
-	test_x, test_t,test_N,test_sequence,test_voc,test_token = load_dataset("qa.894.raw.test.txt",1000,train_token)
+# This function fetches the dataset from the file and fills both X and T with k number of datapoints
+train_x, train_t,train_N,train_sequence,voc,train_token = load_dataset("qa.894.raw.train.txt",100)
+test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",100,train_token)
 
 ## Build and train Autoencoder
 if os.path.exists(file_id):
@@ -88,15 +89,13 @@ if os.path.exists(file_id):
 	autoencoder = load_model(file_id)
 else:
 	print('\n No model with these parameters was found, building new model.\n')
-	autoencoder = build_autoencoder(latent_dimension1,latent_dimension2,voc,train_x,epochs)
+	autoencoder = build_autoencoder(ld1,ld2,voc,train_x,epochs)
 	#autoencoder.save(file_id)
 print('Autoencoder parameters')
 #autoencoder.summary()
-#print_summary(autoencoder)
 
 
-classifier = build_classifier(autoencoder,voc,train_x,train_t,epochs,latent_dimension1,latent_dimension2)
-test_x, test_t,N_t,sequence_t,voc_t,token = load_dataset("qa.894.raw.test.txt",100)
+classifier = build_classifier(autoencoder,voc,train_x,train_t,epochs,ld1,ld2)
 print(classifier.evaluate(test_x,test_t))
 answer = classifier.predict(test_x)
 print(answer[0])
