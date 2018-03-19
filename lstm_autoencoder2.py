@@ -37,25 +37,25 @@ def load_dataset(filename,k = 0,token=None):
 
 def build_autoencoder(l1,l2,voc,x,e):
 	autoencoder = Sequential()
-	autoencoder.add(Masking(mask_value = 0.0,input_shape = (None,voc)))
-	autoencoder.add(LSTM(l1, return_sequences=True))
+	#autoencoder.add(Masking(mask_value = 0.0,input_shape = (None,voc)))
+	autoencoder.add(LSTM(l1, return_sequences=True, input_shape = (None,voc)))
 	autoencoder.add(LSTM(l2,return_sequences=True))
 	autoencoder.add(LSTM( voc, return_sequences=True))
 	autoencoder.add(Dense(voc, activation='softmax'))
-	autoencoder.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics = ['acc'])
+	autoencoder.compile(loss='categorical_crossentropy', optimizer='adam', metrics = ['acc'])
 	autoencoder.fit(x,x, epochs = e)
 	return autoencoder
 
 def build_classifier(source_model,voc,x,t,e,l1,l2):
 	classifier = Sequential()
-	classifier.add(Masking(mask_value = 0.0,input_shape=(None,voc)))
+	#classifier.add(Masking(mask_value = 0.0,input_shape=(None,voc)))
 	#Think we may need to work with a masking layer here to avoid the zeros
-	classifier.add(LSTM(l1,return_sequences=True))
+	classifier.add(LSTM(l1,return_sequences=True, input_shape = (None,voc)))
 	classifier.add(LSTM(l2,return_sequences=True))
+	classifier.layers[0].set_weights(source_model.layers[0].get_weights())
+	classifier.layers[0].trainable = False # Ensure that we don't change representation weights
 	classifier.layers[1].set_weights(source_model.layers[1].get_weights())
 	classifier.layers[1].trainable = False # Ensure that we don't change representation weights
-	classifier.layers[2].set_weights(source_model.layers[2].get_weights())
-	classifier.layers[2].trainable = False # Ensure that we don't change representation weights
 	classifier.add(Dense(voc,activation='softmax'))
 	classifier.compile(loss='categorical_crossentropy',optimizer='RMSprop',metrics = ['acc'])
 	classifier.fit(x,t, epochs = e)
@@ -97,9 +97,9 @@ print('Autoencoder parameters')
 #autoencoder.summary()
 
 
-#classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2)
-print(autoencoder.evaluate(train_x,train_x))
-answer = autoencoder.predict(train_x)
+classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2)
+print(classifier.evaluate(test_x,test_t))
+answer = classifier.predict(test_x)
 print(answer[0])
 print(sequences_to_text(train_token,answer))
 
