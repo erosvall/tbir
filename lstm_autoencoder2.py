@@ -75,7 +75,7 @@ def sequences_to_text(token,x):
 #Dimensionality reduction in encoder1 and encoder 2
 ld1 = 140 
 ld2 = 50
-epochs = 2
+epochs = 5
 file_id = 'Autoencoder_' +str(epochs)+'_'+ str(ld1) + '_' + str(ld2) +'.h5'
 
 
@@ -99,4 +99,4 @@ classifier = build_classifier(autoencoder,voc,train_x,train_t,epochs,ld1,ld2)
 print(classifier.evaluate(test_x,test_t))
 answer = classifier.predict(test_x)
 print(answer[0])
-print(sequences_to_text(token,answer))
+print(sequences_to_text(train_token,answer))
