@@ -41,18 +41,30 @@ def load_dataset(filename,k = 0):
 
 	return x,t,N,sequence,voc
 
-def build_autoencoder(latent_dimension1,latent_dimension2,voc):
+def build_autoencoder(latent_dimension1,latent_dimension2,voc,x,e):
 	autoencoder = Sequential()
-	encoder = LSTM(latent_dimension1,input_shape = (None,voc), return_sequences=True)
-	encoder2 = LSTM(latent_dimension2,return_sequences=True)
-	decoder = LSTM( voc, return_sequences=True)
-	autoencoder.add(encoder)
-	autoencoder.add(encoder2)
-	autoencoder.add(decoder)
+	autoencoder.add(LSTM(latent_dimension1,input_shape = (None,voc), return_sequences=True))
+	autoencoder.add(LSTM(latent_dimension2,return_sequences=True))
+	autoencoder.add(LSTM( voc, return_sequences=True))
 	autoencoder.add(Dense(voc, activation='softmax'))
 	autoencoder.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics = ['acc'])
+	early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+	autoencoder.fit(x,x, epochs = e, validation_split=0.2,callbacks=[early_stopping])
 	return autoencoder
 
+def build_classifier(source_model,voc,x,t,e,l1,l2):
+	classifier = Sequential()
+	classifier.add(LSTM(l1,input_shape=(None,voc),return_sequences=True))
+	classifier.add(LSTM(l2,return_sequences=True))
+	classifier.layers[0].set_weights(source_model.layers[0].get_weights())
+	classifier.layers[1].set_weights(source_model.layers[1].get_weights())
+	classifier.add(Dense(voc,activation='softmax'))
+	classifier.summary()
+	classifier.compile(loss='categorical_crossentropy',optimizer='Adam',metrics = ['acc'])
+	early_stopping = EarlyStopping(monitor='val_loss', patience=4)
+	classifier.fit(x,t, epochs = e,validation_split = 0.2, callbacks = [early_stopping])
+	# We should look at fine tuning as well, basically evaluate  on train_t
+	return classifier
 
 
 #Dimensionality reduction in encoder1 and encoder 2
@@ -62,21 +74,26 @@ epochs = 2
 load_data = True
 file_id = 'Autoencoder_' +str(epochs)+'_'+ str(latent_dimension1) + '_' + str(latent_dimension2) +'.h5'
 
+
 if load_data:
 	# This function fetches the dataset from the file and fills both X and T with k number of datapoints
-	train_x, train_t,N,sequence,voc = load_dataset("qa.894.raw.train.txt",100)
+	train_x, train_t,N,sequence,voc = load_dataset("qa.894.raw.train.txt",300)
+
 
 ## Build and train Autoencoder
 if os.path.exists(file_id):
-	print('\nModel with these parameters found, loading model\n')
+	print('\n Model with these parameters found, loading model \n')
 	autoencoder = load_model(file_id)
 else:
-	print('\nNo model with these parameters was found, building new model.\n')
-	autoencoder = build_autoencoder(latent_dimension1,latent_dimension2,voc)
-	early_stopping = EarlyStopping(monitor='val_loss', patience=4)
-	autoencoder.fit(train_x,train_x, epochs = epochs, validation_split=0.2,callbacks=[early_stopping])
+	print('\n No model with these parameters was found, building new model.\n')
+	autoencoder = build_autoencoder(latent_dimension1,latent_dimension2,voc,train_x,epochs)
 	autoencoder.save(file_id)
-
 print('Autoencoder parameters')
-print_summary(autoencoder)
-#encoder_model = Model(inputs=autoencoder.input, outputs=autoencoder.get_layer(encoder).output)
+autoencoder.summary()
+
+
+classifier = build_classifier(autoencoder,voc,train_x,train_t,epochs,latent_dimension1,latent_dimension2)
+print(test_t.shape)
+print(test_x.shape)
+test_x, test_t,N_t,sequence_t,voc_t = load_dataset("qa.894.raw.test.txt",300)
+classifier.evaluate(test_x,test_t)
