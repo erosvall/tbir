@@ -43,8 +43,7 @@ def build_autoencoder(l1,l2,voc,x,e):
 	autoencoder.add(LSTM( voc, return_sequences=True))
 	autoencoder.add(Dense(voc, activation='softmax'))
 	autoencoder.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics = ['acc'])
-	early_stopping = EarlyStopping(monitor='val_loss', patience=4)
-	autoencoder.fit(x,x, epochs = e, validation_split=0.2,callbacks=[early_stopping])
+	autoencoder.fit(x,x, epochs = e)
 	return autoencoder
 
 def build_classifier(source_model,voc,x,t,e,l1,l2):
