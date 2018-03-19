@@ -5,7 +5,7 @@
 
 #from keras.layers import containers
 from keras.models import Sequential, Model,load_model
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Dropout,Masking
 from keras.layers.recurrent import LSTM
 from keras.callbacks import EarlyStopping
 from keras.preprocessing.text import Tokenizer
@@ -36,26 +36,26 @@ def load_dataset(filename,k = 0,token=None):
 	return x,t,N,sequence,voc,token
 
 def build_autoencoder(l1,l2,voc,x,e):
-	print(x.shape)
 	autoencoder = Sequential()
-	autoencoder.add(LSTM(l1,input_shape = (None,voc), return_sequences=True))
-	#autoencoder.add(LSTM(l2,return_sequences=True))
+	autoencoder.add(Masking(mask_value = 0.0,input_shape = (None,voc)))
+	autoencoder.add(LSTM(l1, return_sequences=True))
+	autoencoder.add(LSTM(l2,return_sequences=True))
 	autoencoder.add(LSTM( voc, return_sequences=True))
 	autoencoder.add(Dense(voc, activation='softmax'))
 	autoencoder.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics = ['acc'])
-	early_stopping = EarlyStopping(monitor='val_loss', patience=4)
-	autoencoder.fit(x,x, epochs = e, validation_split=0.2,callbacks=[early_stopping])
+	autoencoder.fit(x,x, epochs = e)
 	return autoencoder
 
 def build_classifier(source_model,voc,x,t,e,l1,l2):
-	print(x.shape,t.shape)
 	classifier = Sequential()
+	classifier.add(Masking(mask_value = 0.0,input_shape=(None,voc)))
 	#Think we may need to work with a masking layer here to avoid the zeros
-	classifier.add(LSTM(l1,input_shape=(None,voc), return_sequences=True))
-	#classifier.add(LSTM(l2,return_sequences=True))
-	classifier.layers[0].set_weights(source_model.layers[0].get_weights())
-	classifier.layers[0].trainable = False # Ensure that we don't change representation weights
-	#classifier.layers[1].set_weights(source_model.layers[1].get_weights())
+	classifier.add(LSTM(l1,return_sequences=True))
+	classifier.add(LSTM(l2,return_sequences=True))
+	classifier.layers[1].set_weights(source_model.layers[1].get_weights())
+	classifier.layers[1].trainable = False # Ensure that we don't change representation weights
+	classifier.layers[2].set_weights(source_model.layers[2].get_weights())
+	classifier.layers[2].trainable = False # Ensure that we don't change representation weights
 	classifier.add(Dense(voc,activation='softmax'))
 	classifier.compile(loss='categorical_crossentropy',optimizer='RMSprop',metrics = ['acc'])
 	classifier.fit(x,t, epochs = e)
