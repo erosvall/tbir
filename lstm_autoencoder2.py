@@ -73,6 +73,7 @@ def sequences_to_text(token,x):
 	return sentence_list
 
 #Dimensionality reduction in encoder1 and encoder 2
+
 ld1 = 140 
 ld2 = 50
 epochs = 5
@@ -100,3 +101,4 @@ print(classifier.evaluate(test_x,test_t))
 answer = classifier.predict(test_x)
 print(answer[0])
 print(sequences_to_text(train_token,answer))
+
