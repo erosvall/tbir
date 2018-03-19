@@ -5,7 +5,7 @@
 
 #from keras.layers import containers
 from keras.models import Sequential, Model,load_model
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
 from keras.layers.recurrent import LSTM
 from keras.callbacks import EarlyStopping
 from keras.preprocessing.text import Tokenizer
@@ -26,7 +26,7 @@ def preprocess(text,token):
 
 def load_dataset(filename,k = 100):
 	corpus = open(filename).read().lower().splitlines()
-	token = Tokenizer(num_words=1000)
+	token = Tokenizer(num_words=1564)
 	token.fit_on_texts(corpus)
 	corpus, N, sequence, voc = preprocess(corpus,token)
 	## Extracting Training data and initializing some variables for the model
@@ -34,10 +34,10 @@ def load_dataset(filename,k = 100):
 	t = corpus[1:2*k:2]
 	return x,t,N,sequence,voc,token
 
-def build_autoencoder(latent_dimension1,latent_dimension2,voc,x,e):
+def build_autoencoder(l1,l2,voc,x,e):
 	autoencoder = Sequential()
-	autoencoder.add(LSTM(latent_dimension1,input_shape = (None,voc), return_sequences=True))
-	autoencoder.add(LSTM(latent_dimension2,return_sequences=True))
+	autoencoder.add(LSTM(l1,input_shape = (None,voc), return_sequences=True))
+	#autoencoder.add(LSTM(l2,return_sequences=True))
 	autoencoder.add(LSTM( voc, return_sequences=True))
 	autoencoder.add(Dense(voc, activation='softmax'))
 	autoencoder.compile(loss='categorical_crossentropy', optimizer='RMSprop', metrics = ['acc'])
@@ -47,14 +47,14 @@ def build_autoencoder(latent_dimension1,latent_dimension2,voc,x,e):
 
 def build_classifier(source_model,voc,x,t,e,l1,l2):
 	classifier = Sequential()
-	classifier.add(LSTM(l1,input_shape=(None,voc),return_sequences=True))
-	classifier.add(LSTM(l2,return_sequences=True))
+	#Think we may need to work with a masking layer here to avoid the zeros
+	classifier.add(LSTM(l1,input_shape=(None,voc)))
+	#classifier.add(LSTM(l2,return_sequences=True))
 	classifier.layers[0].set_weights(source_model.layers[0].get_weights())
-	classifier.layers[1].set_weights(source_model.layers[1].get_weights())
-	classifier.add(Dense(voc,activation='sigmoid'))
+	#classifier.layers[1].set_weights(source_model.layers[1].get_weights())
+	classifier.add(Dense(voc,activation='softmax'))
 	classifier.compile(loss='categorical_crossentropy',optimizer='Adam',metrics = ['acc'])
-	early_stopping = EarlyStopping(monitor='val_loss', patience=4)
-	classifier.fit(x,t, epochs = e,validation_split = 0.2, callbacks = [early_stopping])
+	classifier.fit(x,t, epochs = e)
 	# We should look at fine tuning as well, basically evaluate  on train_t
 	return classifier
 
@@ -78,7 +78,7 @@ file_id = 'Autoencoder_' +str(epochs)+'_'+ str(latent_dimension1) + '_' + str(la
 
 if load_data:
 	# This function fetches the dataset from the file and fills both X and T with k number of datapoints
-	train_x, train_t,N,sequence,voc,token = load_dataset('qa.894.raw.train.txt',500)
+	train_x, train_t,N,sequence,voc,token = load_dataset('qa.894.raw.train.txt',200)
 	print(N,sequence,voc)
 
 ## Build and train Autoencoder
@@ -94,11 +94,8 @@ print('Autoencoder parameters')
 
 
 classifier = build_classifier(autoencoder,voc,train_x,train_t,epochs,latent_dimension1,latent_dimension2)
-test_x, test_t,N_t,sequence_t,voc_t,token = load_dataset("qa.894.raw.test.txt",300)
-print(N_t,sequence_t,voc_t)
+test_x, test_t,N_t,sequence_t,voc_t,token = load_dataset("qa.894.raw.test.txt",100)
 print(classifier.evaluate(test_x,test_t))
 answer = classifier.predict(test_x)
-
-print(answer.shape)
-print(answer[0].shape)
+print(answer[0])
 print(sequences_to_text(token,answer))
