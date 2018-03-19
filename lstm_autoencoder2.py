@@ -63,6 +63,7 @@ def build_classifier(source_model,voc,x,t,e,l1,l2):
 	return classifier
 
 def sequences_to_text(token,x):
+	print('Converting to text...')
 	reverse_word_dict = dict(map(reversed,token.word_index.items()))
 	InteractiveSession()
 	from_categorical = lambda y: argmax(y,axis=-1).eval()
@@ -76,12 +77,12 @@ def sequences_to_text(token,x):
 
 ld1 = 140 
 ld2 = 50
-epochs = 5
+epochs = 20
 file_id = 'Autoencoder_' +str(epochs)+'_'+ str(ld1) + '_' + str(ld2) +'.h5'
 
 
 # This function fetches the dataset from the file and fills both X and T with k number of datapoints
-train_x, train_t,train_N,train_sequence,voc,train_token = load_dataset("qa.894.raw.train.txt",100)
+train_x, train_t,train_N,train_sequence,voc,train_token = load_dataset("qa.894.raw.train.txt",1000)
 test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",100,train_token)
 
 ## Build and train Autoencoder
@@ -91,14 +92,14 @@ if os.path.exists(file_id):
 else:
 	print('\n No model with these parameters was found, building new model.\n')
 	autoencoder = build_autoencoder(ld1,ld2,voc,train_x,epochs)
-	#autoencoder.save(file_id)
+	autoencoder.save(file_id)
 print('Autoencoder parameters')
 #autoencoder.summary()
 
 
-classifier = build_classifier(autoencoder,voc,train_x,train_t,epochs,ld1,ld2)
-print(classifier.evaluate(test_x,test_t))
-answer = classifier.predict(test_x)
+#classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2)
+print(autoencoder.evaluate(train_x,train_x))
+answer = autoencoder.predict(train_x)
 print(answer[0])
 print(sequences_to_text(train_token,answer))
 
