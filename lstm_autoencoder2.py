@@ -111,11 +111,9 @@ autoencoder.summary()
 #print(ind)
 new_test_t = test_t[:,-1,:]
 
-print(new_test_t.count(2))
 classifier = build_classifier(autoencoder,voc,train_x,train_t[:,-1,:],150,ld1,ld2)
 print(classifier.evaluate(test_x,new_test_t))
 answer = classifier.predict(test_x)
 ind = np.random.choice(400,10)
 print(matrix_to_text(train_token,answer[ind]))
 print(matrix_to_text(train_token,new_test_t[ind]))
-
