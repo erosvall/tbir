@@ -36,7 +36,7 @@ def load_dataset(filename,k = 0,token=None):
     return x,t,N,sequence,voc,token
 
 def build_autoencoder(l1,l2,voc,x,e,batch):
-    callback = ModelCheckpoint('Autoencoder_{epoch:02d}-{loss:.2f}_'+ str(l1) + '_' + str(l2) +'.h5',monitor='loss')
+    callback = ModelCheckpoint('Autoencoder_{epoch:02d}-{loss:.3f}_'+ str(l1) + '_' + str(l2) +'.h5',monitor='loss')
     autoencoder = Sequential()
     autoencoder.add(LSTM(l1, return_sequences=True, input_shape = (None,voc)))
     autoencoder.add(LSTM(l2,return_sequences=True))
@@ -50,7 +50,7 @@ def build_classifier(source_model,voc,x,t,e,l1,l2,batch):
     classifier = Sequential()
     #Think we may need to work with a masking layer here to avoid the zeros
     classifier.add(LSTM(l1,return_sequences=True, input_shape = (None,voc)))
-    classifier.add(LSTM(l2,return_sequences=True))
+    classifier.add(LSTM(l2,return_sequences=False))
     classifier.layers[0].set_weights(source_model.layers[0].get_weights())
     classifier.layers[0].trainable = False # Ensure that we don't change representation weights
     classifier.layers[1].set_weights(source_model.layers[1].get_weights())
@@ -73,6 +73,13 @@ def sequences_to_text(token,x):
     sentence_list = list(map(words_to_sentence,word_matrix))
     return '\n'.join(sentence_list)
 
+    
+def matrix_to_text(token,x):
+    print('Converting to text vector...')
+    reverse_word_dict = dict(map(reversed,token.word_index.items()))
+    InteractiveSession()
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get,argmax(y,axis=-1).eval()))
+    return seqs_to_words(x)
 #Dimensionality reduction in encoder1 and encoder 2
 
 batch = 512
@@ -98,6 +105,7 @@ else:
 print('Autoencoder parameters')
 autoencoder.summary()
 
+new_test_t = test_t[:,-1,:]
 
 #classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2,batch)
 print(autoencoder.evaluate(test_x,test_x,batch_size=batch))
