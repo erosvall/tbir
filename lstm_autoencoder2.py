@@ -18,7 +18,6 @@ import os.path
 
 def preprocess(text,token):
 	text = token.texts_to_sequences(text)
-	text = np.array(text)
 	text = pad_sequences(text)
 	text = to_categorical(text,len(token.word_index.items())+1)
 	(N,sequence,voc) = text.shape
@@ -37,7 +36,6 @@ def load_dataset(filename,k = 0,token=None):
 
 def build_autoencoder(l1,l2,voc,x,e):
 	autoencoder = Sequential()
-	#autoencoder.add(Masking(mask_value = 0.0,input_shape = (None,voc)))
 	autoencoder.add(LSTM(l1, return_sequences=True, input_shape = (None,voc)))
 	autoencoder.add(LSTM(l2,return_sequences=True))
 	autoencoder.add(LSTM( voc, return_sequences=True))
@@ -48,7 +46,6 @@ def build_autoencoder(l1,l2,voc,x,e):
 
 def build_classifier(source_model,voc,x,t,e,l1,l2):
 	classifier = Sequential()
-	#classifier.add(Masking(mask_value = 0.0,input_shape=(None,voc)))
 	#Think we may need to work with a masking layer here to avoid the zeros
 	classifier.add(LSTM(l1,return_sequences=True, input_shape = (None,voc)))
 	classifier.add(LSTM(l2,return_sequences=True))
@@ -83,7 +80,7 @@ file_id = 'Autoencoder_' +str(epochs)+'_'+ str(ld1) + '_' + str(ld2) +'.h5'
 
 # This function fetches the dataset from the file and fills both X and T with k number of datapoints
 train_x, train_t,train_N,train_sequence,voc,train_token = load_dataset("qa.894.raw.train.txt",1000)
-test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",100,train_token)
+test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",4000,train_token)
 
 ## Build and train Autoencoder
 if os.path.exists(file_id):
@@ -94,12 +91,11 @@ else:
 	autoencoder = build_autoencoder(ld1,ld2,voc,train_x,epochs)
 	autoencoder.save(file_id)
 print('Autoencoder parameters')
-#autoencoder.summary()
+autoencoder.summary()
 
 
 classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2)
 print(classifier.evaluate(test_x,test_t))
 answer = classifier.predict(test_x)
-print(answer[0])
-print(sequences_to_text(train_token,answer))
+print(sequences_to_text(train_token,answer[np.random.choice(4000,10)]))
 
