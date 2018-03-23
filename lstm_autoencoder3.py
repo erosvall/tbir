@@ -5,7 +5,7 @@
 
 #from keras.layers import containers
 from keras.models import Sequential, Model,load_model
-from keras.layers import Dense, Dropout,Masking
+from keras.layers import Dense, Dropout,Masking,Embedding,TimeDistributed
 from keras.layers.recurrent import LSTM
 from keras.callbacks import EarlyStopping
 from keras.preprocessing.text import Tokenizer
@@ -21,30 +21,36 @@ import os.path
 def preprocess(text,token):
     text = token.texts_to_sequences(text)
     text = pad_sequences(text)
-    text = to_categorical(text,len(token.word_index.items())+1)
-    (N,sequence,voc) = text.shape
+    #text = to_categorical(text,len(token.word_index.items())+1)
+    voc = len(token.word_index.items())+1
+    print('SHAPE' + str(text.shape)+str(voc))
+    (N,sequence) = text.shape
+    print('TEXT')
+    print(text)
     return text, N, sequence, voc
 
 def load_dataset(filename,k = 0,token=None):
     corpus = open(filename).read().lower().splitlines()
     if token is None:
         token = Tokenizer()
-		#oov_token = '____'
+        #oov_token = '____'
         token.fit_on_texts(corpus)
     corpus, N, sequence, voc = preprocess(corpus,token)
     ## Extracting Training data and initializing some variables for the model
     x = corpus[0:2*k:2] # extract every second item from the list
     t = corpus[1:2*k:2]
-    return x,t,N,sequence,voc,token
+    return x,t,k,sequence,voc,token
 
-def build_autoencoder(l1,l2,voc,x,e,batch):
+def build_autoencoder(l1,l2,voc,sequence,x,e,batch):
     callback = ModelCheckpoint('Autoencoder_{epoch:02d}-{loss:.3f}_'+ str(l1) + '_' + str(l2) +'.h5',monitor='loss')
     autoencoder = Sequential()
-    autoencoder.add(LSTM(l1, return_sequences=True, input_shape = (None,voc)))
+    autoencoder.add(Embedding(voc,300,input_length=sequence,mask_zero=True))
+    autoencoder.add(LSTM(l1, return_sequences=True))#, input_shape = (None,voc)))
     autoencoder.add(LSTM(l2,return_sequences=True))
-    autoencoder.add(LSTM( voc, return_sequences=True))
-    autoencoder.add(Dense(voc, activation='softmax'))
+    autoencoder.add(LSTM(300, return_sequences=True))
+    autoencoder.add(TimeDistributed(Dense(300, activation='softmax')))
     autoencoder.compile(loss='categorical_crossentropy', optimizer='adam', metrics = ['acc'])
+    autoencoder.summary()
     autoencoder.fit(x,x, epochs = e,callbacks=[callback],batch_size = batch)
     return autoencoder
 
@@ -57,7 +63,7 @@ def build_classifier(source_model,voc,x,t,e,l1,l2,batch):
     classifier.layers[0].trainable = False # Ensure that we don't change representation weights
     classifier.layers[1].set_weights(source_model.layers[1].get_weights())
     classifier.layers[1].trainable = False # Ensure that we don't change representation weights
-    classifier.add(Dense(voc,activation='softmax', kernel_regularizer=regularizers.l1(0.)))	
+    classifier.add(Dense(voc,activation='softmax', kernel_regularizer=regularizers.l1(0.))) 
     classifier.compile(loss='categorical_crossentropy',optimizer='adam',metrics = ['categorical_accuracy'])
     classifier.fit(x,t, epochs = e,batch_size = batch)
     # We should look at fine tuning as well, basically evaluate  on train_t
@@ -82,12 +88,20 @@ def matrix_to_text(token,x):
     InteractiveSession()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get,argmax(y,axis=-1).eval()))
     return seqs_to_words(x)
+    
+def category_to_text(token,x):
+    print('Converting to text...')
+    reverse_word_dict = dict(map(reversed,token.word_index.items()))
+    InteractiveSession()
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get,x))
+    return '\n'.join(seqs_to_words(x))
+    
 #Dimensionality reduction in encoder1 and encoder 2
 
 batch = 512
 ld1 = 140 
 ld2 = 50
-epochs = 30
+epochs = 20
 file_id = 'Autoencoder_' +str(epochs)+'_'+ str(ld1) + '_' + str(ld2) +'.h5'
 
 
@@ -98,24 +112,24 @@ test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",679
 
 
 if True:
-	## Build and train Autoencoder
-	if os.path.exists(file_id):
-		print('\n Model with these parameters found, loading model \n')
-		autoencoder = load_model(file_id)
-	else:
-		print('\n No model with these parameters was found, building new model.\n')
-		autoencoder = build_autoencoder(ld1,ld2,voc,train_x,epochs,batch)
-		autoencoder.save(file_id)
-	print('Autoencoder parameters')
-	autoencoder.summary()
+    ## Build and train Autoencoder
+    if os.path.exists(file_id):
+        print('\n Model with these parameters found, loading model \n')
+        autoencoder = load_model(file_id)
+    else:
+        print('\n No model with these parameters was found, building new model.\n')
+        autoencoder = build_autoencoder(ld1,ld2,voc,train_sequence,train_x,epochs,batch)
+        autoencoder.save(file_id)
+    print('Autoencoder parameters')
+    autoencoder.summary()
 
-	new_test_t = test_t[:,-1,:]
+    new_test_t = test_t[:,-1,:]
 
-	classifier = build_classifier(autoencoder,voc,train_x,train_t[:,-1,:],50,ld1,ld2,batch)
-	print(classifier.evaluate(test_x,new_test_t,batch_size=batch))
-	answer = classifier.predict(test_x,batch_size=batch)
-	rand = np.random.choice(4000,10)
-	print('ORIGINAL')
-	print(matrix_to_text(train_token,new_test_t[rand]))
-	print('PREDICTION')
-	print(matrix_to_text(train_token,answer[rand]))
+    #classifier = build_classifier(autoencoder,voc,train_x,train_t[:,-1,:],50,ld1,ld2,batch)
+    print(autoencoder.evaluate(train_x,train_x,batch_size=batch))
+    answer = autoencoder.predict_classes(test_x,batch_size=batch)
+    rand = np.random.choice(4000,10)
+    print('ORIGINAL')
+    print(category_to_text(train_token,train_x[rand]))
+    print('PREDICTION')
+    print(category_to_text(train_token,answer[rand]))
