@@ -12,6 +12,7 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import plot_model,to_categorical,print_summary
 from keras.backend import argmax
+from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 import numpy as np
 import os.path
@@ -34,17 +35,18 @@ def load_dataset(filename,k = 0,token=None):
     t = corpus[1:2*k:2]
     return x,t,N,sequence,voc,token
 
-def build_autoencoder(l1,l2,voc,x,e):
+def build_autoencoder(l1,l2,voc,x,e,batch):
+    callback = ModelCheckpoint('Autoencoder_{epoch:02d}-{loss:.2f}_'+ str(l1) + '_' + str(l2) +'.h5',monitor='loss')
     autoencoder = Sequential()
     autoencoder.add(LSTM(l1, return_sequences=True, input_shape = (None,voc)))
     autoencoder.add(LSTM(l2,return_sequences=True))
     autoencoder.add(LSTM( voc, return_sequences=True))
     autoencoder.add(Dense(voc, activation='softmax'))
     autoencoder.compile(loss='categorical_crossentropy', optimizer='adam', metrics = ['acc'])
-    autoencoder.fit(x,x, epochs = e)
+    autoencoder.fit(x,x, epochs = e,callbacks=[callback],batch_size = batch)
     return autoencoder
 
-def build_classifier(source_model,voc,x,t,e,l1,l2):
+def build_classifier(source_model,voc,x,t,e,l1,l2,batch):
     classifier = Sequential()
     #Think we may need to work with a masking layer here to avoid the zeros
     classifier.add(LSTM(l1,return_sequences=True, input_shape = (None,voc)))
@@ -55,9 +57,10 @@ def build_classifier(source_model,voc,x,t,e,l1,l2):
     classifier.layers[1].trainable = False # Ensure that we don't change representation weights
     classifier.add(Dense(voc,activation='softmax'))
     classifier.compile(loss='categorical_crossentropy',optimizer='RMSprop',metrics = ['acc'])
-    classifier.fit(x,t, epochs = e)
+    classifier.fit(x,t, epochs = e,batch_size = batch)
     # We should look at fine tuning as well, basically evaluate  on train_t
     return classifier
+
 
 def sequences_to_text(token,x):
     print('Converting to text...')
@@ -68,19 +71,21 @@ def sequences_to_text(token,x):
     words_to_sentence = lambda y: ' '.join(filter(None,y))
     word_matrix = list(map(seqs_to_words,x))
     sentence_list = list(map(words_to_sentence,word_matrix))
-    return sentence_list
+    return '\n'.join(sentence_list)
 
 #Dimensionality reduction in encoder1 and encoder 2
 
+batch = 512
 ld1 = 140 
 ld2 = 50
-epochs = 20
+epochs = 30
 file_id = 'Autoencoder_' +str(epochs)+'_'+ str(ld1) + '_' + str(ld2) +'.h5'
 
 
 # This function fetches the dataset from the file and fills both X and T with k number of datapoints
-train_x, train_t,train_N,train_sequence,voc,train_token = load_dataset("qa.894.raw.train.txt",1000)
-test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",4000,train_token)
+train_x, train_t,train_N,train_sequence,voc,train_token = load_dataset("qa.894.raw.train.txt",6795)
+test_x, test_t,test_N,test_sequence,_,_ = load_dataset("qa.894.raw.test.txt",5000,train_token)
+
 
 ## Build and train Autoencoder
 if os.path.exists(file_id):
@@ -88,13 +93,17 @@ if os.path.exists(file_id):
     autoencoder = load_model(file_id)
 else:
     print('\n No model with these parameters was found, building new model.\n')
-    autoencoder = build_autoencoder(ld1,ld2,voc,train_x,epochs)
+    autoencoder = build_autoencoder(ld1,ld2,voc,train_x,epochs,batch)
     autoencoder.save(file_id)
 print('Autoencoder parameters')
 autoencoder.summary()
 
 
-classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2)
-print(classifier.evaluate(test_x,test_t))
-answer = classifier.predict(test_x)
-print(sequences_to_text(train_token,answer[np.random.choice(4000,10)]))
+#classifier = build_classifier(autoencoder,voc,train_x,train_t,10,ld1,ld2,batch)
+print(autoencoder.evaluate(test_x,test_x,batch_size=batch))
+answer = autoencoder.predict(test_x,batch_size=batch)
+rand = np.random.choice(4000,10)
+print('ORIGINAL')
+print(sequences_to_text(train_token,test_x[rand]))
+print('PREDICTION')
+print(sequences_to_text(train_token,answer[rand]))
