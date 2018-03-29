@@ -2,18 +2,16 @@
 # https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
 # Requires Keras and Tensorflow backend
 
-
 from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical, print_summary
+from keras.utils import to_categorical
 from keras.backend import argmax
 from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 from keras import regularizers
-import numpy as np
 import os.path
 import argparse
 import sys
@@ -86,17 +84,6 @@ def matrix_to_text(token, x):
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
     return seqs_to_words(x)
 
-# classifier = build_classifier(autoencoder, voc, train_x, train_t, 30, ld1, ld2, batch)
-# print(classifier.evaluate(test_x, test_t, batch_size=batch))
-# answer = classifier.predict(test_x, batch_size=batch)
-# classifier.summary()
-# classifier.save('Classifier_' + str(epochs) + '_' + str(ld1) + '_' + str(ld2) + '.h5')
-# rand = range(5)  # np.random.choice(4000, 10)
-# print('ORIGINAL')
-# print(sequences_to_text(train_token, test_t[rand]))
-# print('PREDICTION')
-# print(sequences_to_text(train_token, answer[rand]))
-
 def main(argv=None):
     # EXAMPLES
     argparser = argparse.ArgumentParser(description='An inference engine for problog programs and bayesian networks.')
@@ -159,8 +146,6 @@ def main(argv=None):
     print('\nAutoencoder parameters')
     autoencoder.summary()
 
-
-
     # Build and train Question Answerer
     if args.qa:
         print('\nLoading Question Answerer model from file: ' + args.qa + ' \n')
@@ -203,4 +188,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-

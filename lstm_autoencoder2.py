@@ -2,18 +2,16 @@
 # https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
 # Requires Keras and Tensorflow backend
 
-
 from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical, print_summary
+from keras.utils import to_categorical
 from keras.backend import argmax
 from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 from keras import regularizers
-import numpy as np
 import os.path
 import argparse
 import sys
@@ -87,17 +85,6 @@ def matrix_to_text(token, x):
     return seqs_to_words(x)
 
 
-# classifier = build_classifier(autoencoder, voc, train_x, train_t, 30, ld1, ld2, batch)
-# print(classifier.evaluate(test_x, test_t, batch_size=batch))
-# answer = classifier.predict(test_x, batch_size=batch)
-# classifier.summary()
-# classifier.save('Classifier_' + str(epochs) + '_' + str(ld1) + '_' + str(ld2) + '.h5')
-# rand = range(5)  # np.random.choice(4000, 10)
-# print('ORIGINAL')
-# print(sequences_to_text(train_token, test_t[rand]))
-# print('PREDICTION')
-# print(sequences_to_text(train_token, answer[rand]))
-
 def main(argv=None):
     # EXAMPLES
     argparser = argparse.ArgumentParser(description='An inference engine for problog programs and bayesian networks.')
@@ -105,7 +92,7 @@ def main(argv=None):
     argparser.add_argument('--ae', type=str,
                            help='Filename of existing autoencoder model')
     argparser.add_argument('--qa', type=str,
-                           help='Filename of existing classifier model')
+                           help='Filename of existing question answerer model')
     argparser.add_argument('--e', type=int,
                            help='Number of epochs, default 1')
     argparser.add_argument('--ld1', type=int,
@@ -202,4 +189,3 @@ def main(argv=None):
 
 if __name__ == "__main__":
     sys.exit(main())
-
