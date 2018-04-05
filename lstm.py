@@ -16,6 +16,16 @@ import os.path
 import argparse
 import sys
 
+def load_cnn(filename):
+    # Returns a matrix where each row corresponds to imageXXXX, note that index determines image number
+    images = open(filename).read().splitlines()
+    for i,img in enumerate(images):
+        images[i] = img.split(',')
+        images[i][0] = int(images[i][0][5:])
+    images = np.asarray(images).astype(float)
+    images = images[images[:,0].argsort()]
+    return images[:,1:]
+
 
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
