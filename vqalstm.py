@@ -2,8 +2,8 @@
 # https://github.com/keras-team/keras/blob/master/examples/lstm_seq2seq.py
 # Requires Keras and Tensorflow backend
 
-from keras.models import Sequential, load_model
-from keras.layers import Dense, Embedding, Input,Dropout
+from keras.models import Sequential, load_model, Model
+from keras.layers import Dense, Embedding, Input,Dropout,Concatenate
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -58,32 +58,40 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     return x, imgs,t, N, sequence, voc, token
 
 
-def build_word_classifier(voc, x ,l1):
-    words = Sequential()
-    words.add(Embedding(input_length=31,input_dim=voc + 1 ,output_dim=l1,mask_zero = True))
-    words.add(LSTM(l1))
-    return words
-
-
-def build_visual_classifier(imshape):
-    visual = Sequential()
-    visual.add(Input(imshape))
-    return visual
-
 def build_classifier(words, images, t, e,l1, voc, batch):
-    x = [words, images] # This might give problems, dont know how this will merge 
     print('Building text classifier...')
-    word_classifier = build_word_classifier(voc, words ,l1)
+    word_input = Input(shape=(30))
+    word_embedding = Embedding(
+        input_length = 1789,
+        input_dim=voc,
+        output_dim=l1,
+        mask_zero = True
+        )(word_input)
+    word_encoding = LSTM(
+        l1,
+        batch_input_shape=(batch,30,l1)
+        )(word_embedding)
     print('Building visual classifier...')
-    visual_classifier = build_visual_classifier(images.shape)
+    imshape = images.shape
+    visual_input = Input(shape=imshape)
+    visual_encoding = Dense(imshape[1])(visual_input)
     print('Merging...')
-    classifier = Sequential()
-    classifier.add(Merge([word_classifier,visual_classifier])) 
-    classifier.add(Dropout(0.5)) 
-    classifier.add(Dense(voc,activation='softmax'))
-    classifier.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
+    merged = keras.layers.concatenate([word_encoding,visual_encoding])
+    dropout = Dropout(0.5)(merged)
+    output = Dense(voc,activation='softmax')(dropout)
+    classifier = Model(
+        inputs = [word_classifier,visual_classifier], 
+        outputs = output)
+    classifier.compile(
+        loss='categorical_crossentropy', 
+        optimizer='adam', 
+        metrics=['categorical_accuracy'])
     print('Training...')
-    classifier.fit(x, t, epochs=e, batch_size=batch)
+    classifier.fit(
+        [words, images],
+        t, 
+        epochs=e, 
+        batch_size=batch)
     return classifier
 
 def sequences_to_text(token, x):
