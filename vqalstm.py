@@ -29,9 +29,9 @@ def load_cnn(filename):
 
     
 def match_img_features(questions,img_features):
-    return list(map(lambda x: 
+    return np.asarray(list(map(lambda x: 
                 img_features[int(x.split('image')[-1].split(' ')[0])-1],
-                questions))
+                questions)))
 
                 
 def preprocess(text, token):
