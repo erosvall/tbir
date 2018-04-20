@@ -12,6 +12,7 @@ from keras.backend import argmax
 from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 from keras import regularizers
+import numpy as np
 import os.path
 import argparse
 import sys
@@ -27,7 +28,12 @@ def load_cnn(filename):
     return images[:,1:]
 
     
+def match_img_features(questions,img_features):
+    return list(map(lambda x: 
+                img_features[int(x.split('image')[-1].split(' ')[0])-1],
+                questions))
 
+                
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
     text = pad_sequences(text)
@@ -36,16 +42,20 @@ def preprocess(text, token):
     return text, N, sequence, voc
 
 
-def load_dataset(filename, k=0, token=None):
+def load_dataset(filename, k=0, token=None,img_filename=None):
     corpus = open(filename).read().lower().splitlines()
+    if not img_filename is None:
+        img_features = load_cnn(img_filename)
+        questions = corpus[0:2*k:2]
+        imgs = match_img_features(questions,img_features)
     if token is None:
         token = Tokenizer()#oov_token='~')
         token.fit_on_texts(corpus)
-    corpus, N, sequence, voc = preprocess(corpus, token)
+    cat_corpus, N, sequence, voc = preprocess(corpus, token)
     # Extracting Training data and initializing some variables for the model
-    x = corpus[0:2*k:2]  # extract every second item from the list
-    t = corpus[1:2*k:2]
-    return x, t, N, sequence, voc, token
+    x = cat_corpus[0:2*k:2]  # extract every second item from the list
+    t = cat_corpus[1:2*k:2]
+    return x, imgs,t, N, sequence, voc, token
 
 
 def build_classifier(voc, x, t, e, l1, batch):
@@ -113,8 +123,8 @@ def main(argv=None):
     qa_file_id = 'Question_Answerer_' + str(epochs) + '_' + str(ld1) + '_' + str(ld2) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
-    train_x, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795)
-    test_x, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token)
+    train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
+    test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
 
 
     # Build and train Question Answerer
