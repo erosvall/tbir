@@ -3,7 +3,7 @@
 # Requires Keras and Tensorflow backend
 
 from keras.models import Sequential, load_model
-from keras.layers import Dense
+from keras.layers import Dense, Embedding, Input,Dropout
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -58,16 +58,33 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     return x, imgs,t, N, sequence, voc, token
 
 
-def build_classifier(voc, x, t, e, l1, batch):
+def build_word_classifier(voc, x ,l1):
+    words = Sequential()
+    words.add(Embedding(input_length=31,input_dim=voc + 1 ,output_dim=l1,mask_zero = True))
+    words.add(LSTM(l1))
+    return words
+
+
+def build_visual_classifier(imshape):
+    visual = Sequential()
+    visual.add(Input(imshape))
+    return visual
+
+def build_classifier(words, images, t, e,l1, voc, batch):
+    x = [words, images] # This might give problems, dont know how this will merge 
+    print('Building text classifier...')
+    word_classifier = build_word_classifier(voc, words ,l1)
+    print('Building visual classifier...')
+    visual_classifier = build_visual_classifier(images.shape)
+    print('Merging...')
     classifier = Sequential()
-    classifier.add(Embedding(input_shape=(None,voc),output_dim=(l1),mask_zero = True))
-    classifier.add(LSTM(l1))
-    classifier.add(Dropout(0.5))
-    classifier.add(Dense(voc, activation='softmax'))
+    classifier.add(Merge([word_classifier,visual_classifier])) 
+    classifier.add(Dropout(0.5)) 
+    classifier.add(Dense(voc,activation='softmax'))
     classifier.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['categorical_accuracy'])
+    print('Training...')
     classifier.fit(x, t, epochs=e, batch_size=batch)
     return classifier
-
 
 def sequences_to_text(token, x):
     print('Converting to text...')
@@ -120,12 +137,12 @@ def main(argv=None):
     print('--ld1 Latent dimension 1: ' + str(ld1))
     print('--b Batch size: ' + str(batch))
 
-    qa_file_id = 'Question_Answerer_' + str(epochs) + '_' + str(ld1) + '_' + str(ld2) + '.h5'
+    qa_file_id = 'Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
     test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
-
+    print(train_x.shape)
 
     # Build and train Question Answerer
     if args.qa:
@@ -136,7 +153,7 @@ def main(argv=None):
         classifier = load_model(qa_file_id)
     else:
         print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_classifier(autoencoder, voc, train_x, train_t, epochs, ld1, ld2, batch)
+        classifier = build_classifier(train_x, train_imgs, train_t, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
