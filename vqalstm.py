@@ -16,11 +16,21 @@ import os.path
 import argparse
 import sys
 
+def load_cnn(filename):
+    # Returns a matrix where each row corresponds to imageXXXX, note that index determines image number
+    images = open(filename).read().splitlines()
+    for i,img in enumerate(images):
+        images[i] = img.split(',')
+        images[i][0] = int(images[i][0][5:])
+    images = np.asarray(images).astype(float)
+    images = images[images[:,0].argsort()]
+    return images[:,1:]
+
 
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
     text = pad_sequences(text)
-    text = to_categorical(text, len(token.word_index.items()) + 1)
+    text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence, voc) = text.shape
     return text, N, sequence, voc
 
@@ -28,12 +38,12 @@ def preprocess(text, token):
 def load_dataset(filename, k=0, token=None):
     corpus = open(filename).read().lower().splitlines()
     if token is None:
-        token = Tokenizer()  # oov_token='~')
+        token = Tokenizer()#oov_token='~')
         token.fit_on_texts(corpus)
     corpus, N, sequence, voc = preprocess(corpus, token)
     # Extracting Training data and initializing some variables for the model
-    x = corpus[0:2 * k:2]  # extract every second item from the list
-    t = corpus[1:2 * k:2]
+    x = corpus[0:2*k:2]  # extract every second item from the list
+    t = corpus[1:2*k:2]
     return x, t, N, sequence, voc, token
 
 
@@ -52,8 +62,8 @@ def build_autoencoder(l1, l2, voc, x, e, batch):
 def build_classifier(source_model, voc, x, t, e, l1, l2, batch):
     classifier = Sequential()
     # Think we may need to work with a masking layer here to avoid the zeros
-    classifier.add(LSTM(l1, return_sequences=True, input_shape=(None, voc)))
-    classifier.add(LSTM(l2, return_sequences=True))
+    classifier.add(LSTM(l1,return_sequences=True, input_shape=(None,voc)))
+    classifier.add(LSTM(l2,return_sequences=True))
     classifier.layers[0].set_weights(source_model.layers[0].get_weights())
     classifier.layers[0].trainable = False  # Ensure that we don't change representation weights
     classifier.layers[1].set_weights(source_model.layers[1].get_weights())
@@ -76,23 +86,22 @@ def sequences_to_text(token, x):
     sentence_list = list(map(words_to_sentence, word_matrix))
     return '\n'.join(sentence_list)
 
-
+    
 def matrix_to_text(token, x):
     print('Converting to text vector...')
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y, axis=-1).eval()))
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
     return seqs_to_words(x)
-
 
 def main(argv=None):
     # EXAMPLES
     argparser = argparse.ArgumentParser(description='An inference engine for problog programs and bayesian networks.')
     # optional arguments
-    argparser.add_argument('--ae', type=str,
+    argparser.add_argument('--ae',type=str,
                            help='Filename of existing autoencoder model')
     argparser.add_argument('--qa', type=str,
-                           help='Filename of existing question answerer model')
+                           help='Filename of existing classifier model')
     argparser.add_argument('--e', type=int,
                            help='Number of epochs, default 1')
     argparser.add_argument('--ld1', type=int,
@@ -102,6 +111,7 @@ def main(argv=None):
     argparser.add_argument('--b', type=int,
                            help='Batch size, default 32')
     args = argparser.parse_args(argv)
+
 
     # Dimensionality reduction in encoder1 and encoder 2
     ld1 = 140
@@ -185,7 +195,6 @@ def main(argv=None):
     print(sequences_to_text(train_token, test_t[rand]))
     print('\nPredicted answers:')
     print(sequences_to_text(train_token, qa_answer[rand]))
-
 
 if __name__ == "__main__":
     sys.exit(main())
