@@ -3,7 +3,7 @@
 # Requires Keras and Tensorflow backend
 
 from keras.models import Sequential, load_model
-from keras.layers import Dense
+from keras.layers import Dense, Embedding, Input,Dropout
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -60,7 +60,7 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
 
 def build_word_classifier(voc, x ,l1):
     words = Sequential()
-    words.add(Embedding(input_shape=(None,voc),input_dim=1000,output_dim=l1,mask_zero = True))
+    words.add(Embedding(input_length=31,input_dim=voc + 1 ,output_dim=l1,mask_zero = True))
     words.add(LSTM(l1))
     return words
 
@@ -142,7 +142,7 @@ def main(argv=None):
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
     test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
-
+    print(train_x.shape)
 
     # Build and train Question Answerer
     if args.qa:
@@ -153,7 +153,7 @@ def main(argv=None):
         classifier = load_model(qa_file_id)
     else:
         print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_classifier(autoencoder, voc, train_x, train_t, epochs, ld1, ld2, batch)
+        classifier = build_classifier(train_x, train_imgs, train_t, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
