@@ -26,6 +26,7 @@ def load_cnn(filename):
     images = images[images[:,0].argsort()]
     return images[:,1:]
 
+    
 
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
