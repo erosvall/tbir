@@ -90,7 +90,8 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         [words, images],
         t, 
         epochs=e, 
-        batch_size=batch)
+        batch_size=batch,
+        validation_split=0.1)
     return classifier
 
 def sequences_to_text(token, x):
@@ -174,7 +175,7 @@ def main(argv=None):
     qa_answer = classifier.predict([test_x,test_imgs], batch_size=batch)
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
-    print(qa_answer.shape)
+
     print('\nFirst 10 answers:')
     print(sequences_to_text(train_token, [test_t[rand]]))
     print('\nPredicted answers:')
