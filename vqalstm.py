@@ -82,6 +82,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     classifier = Model(
         inputs = [word_classifier,visual_classifier], 
         outputs = output)
+    classifier.create()
     classifier.compile(
         loss='categorical_crossentropy', 
         optimizer='adam', 
