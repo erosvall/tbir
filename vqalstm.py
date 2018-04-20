@@ -3,7 +3,7 @@
 # Requires Keras and Tensorflow backend
 
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Embedding, Input,Dropout,Concatenate
+from keras.layers import Dense, Embedding, Input,Dropout,concatenate
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -36,9 +36,7 @@ def match_img_features(questions,img_features):
                 
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
-    text = pad_sequences(text)
-    print(text)
-    print(text.shape)
+    text = pad_sequences(text,maxlen = 30)
     # text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence) = text.shape
     voc = 1789
@@ -63,29 +61,26 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
 
 def build_classifier(words, images, t, e,l1, voc, batch):
     print('Building text classifier...')
-    word_input = Input(shape=(30))
+    word_input = Input(shape=(30,))
     word_embedding = Embedding(
-        input_length = 1789,
-        input_dim=voc,
-        output_dim=l1,
+        input_dim = voc,
+        output_dim = l1,
         mask_zero = True
         )(word_input)
     word_encoding = LSTM(
         l1,
-        batch_input_shape=(batch,30,l1)
         )(word_embedding)
     print('Building visual classifier...')
     imshape = images.shape
-    visual_input = Input(shape=imshape)
+    visual_input = Input(shape=(imshape[1],))
     visual_encoding = Dense(imshape[1])(visual_input)
     print('Merging...')
-    merged = keras.layers.concatenate([word_encoding,visual_encoding])
+    merged = concatenate([word_encoding,visual_encoding])
     dropout = Dropout(0.5)(merged)
-    output = Dense(voc,activation='softmax')(dropout)
+    output = Dense(30,activation='softmax',name='Output_layer')(dropout)
     classifier = Model(
-        inputs = [word_classifier,visual_classifier], 
+        inputs = [word_input,visual_input], 
         outputs = output)
-    classifier.create()
     classifier.compile(
         loss='categorical_crossentropy', 
         optimizer='adam', 
@@ -135,7 +130,7 @@ def main(argv=None):
 
     # Dimensionality reduction in encoder1 
     ld1 = 140
-    epochs = 1
+    epochs = 10
     batch = 32
 
     if args.ld1:
@@ -169,26 +164,21 @@ def main(argv=None):
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
-    print('\nQuestion answerer parameters')
-    classifier.summary()
+    #print('\nQuestion answerer parameters')
+    #classifier.summary()
 
-    rand = range(10)  # np.random.choice(4000, 10)
+    rand = np.random.choice(4000, 10)
 
     print('\nEvaluating question answerer on test data')
-    qa_result = classifier.evaluate(test_x, test_t, batch_size=batch)
-    qa_answer = classifier.predict(test_x, batch_size=batch)
+    qa_result = classifier.evaluate([test_x,test_imgs], test_t, batch_size=batch)
+    qa_answer = classifier.predict([test_x,test_imgs], batch_size=batch)
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
-
-    print('\nFirst 10 questions:')
-    print(sequences_to_text(train_token, test_x[rand]))
-    print('\nPredicted questions:')
-    print(sequences_to_text(train_token, ae_answer[rand]))
-
+    print(qa_answer.shape)
     print('\nFirst 10 answers:')
-    print(sequences_to_text(train_token, test_t[rand]))
+    print(sequences_to_text(train_token, [test_t[rand]]))
     print('\nPredicted answers:')
-    print(sequences_to_text(train_token, qa_answer[rand]))
+    print(sequences_to_text(train_token, [qa_answer[rand]]))
 
 if __name__ == "__main__":
     sys.exit(main())
