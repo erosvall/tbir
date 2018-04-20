@@ -37,8 +37,11 @@ def match_img_features(questions,img_features):
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
     text = pad_sequences(text)
-    text = to_categorical(text, len(token.word_index.items())+1)
-    (N, sequence, voc) = text.shape
+    print(text)
+    print(text.shape)
+    # text = to_categorical(text, len(token.word_index.items())+1)
+    (N, sequence) = text.shape
+    voc = 1789
     return text, N, sequence, voc
 
 
