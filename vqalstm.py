@@ -229,18 +229,75 @@ def matrix_to_text(token, x):
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
     return seqs_to_words(x)
 
-def compare(questions,answers,predictions,N,token):
+def fuzzy_set_membership_measure(x,A,m):
+    """
+    Set membership measure.
+    x: element
+    A: set of elements
+    m: point-wise element-to-element measure m(a,b) ~ similarity(a,b)
+
+    This function implments a fuzzy set membership measure:
+        m(x \in A) = max_{a \in A} m(x,a)}
+    """
+    return 0 if A==[] else max(list(map(lambda a: m(x,a), A)))
+
+def score_it(A,T,m):
+    """
+    A: list of A items 
+    T: list of T items
+    m: set membership measure
+        m(a \in A) gives a membership quality of a into A 
+
+    This function implements a fuzzy accuracy score:
+        score(A,T) = min{prod_{a \in A} m(a \in T), prod_{t \in T} m(a \in A)}
+        where A and T are set representations of the answers
+        and m is a measure
+    """
+    if A==[] and T==[]:
+        return 1
+
+    # print A,T
+
+    score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
+    score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
+    return min(score_left,score_right) 
+
+
+def print_compare(questions,answers,predictions,N,token):
     rand = np.random.choice(4000, N)
-    questions = sequences_to_text(token,questions)
-    answers = matrix_to_text(token, answers[rand].tolist())
-    predictions = matrix_to_text(token, predictions[rand].tolist())
+    questions = sequences_to_text(token, questions)
+    answers = matrix_to_text(token, answers.tolist())
+    predictions = matrix_to_text(token, predictions.tolist())
+    print('\nWUPS measure with threshold 0.9')
+
+    our_element_membership=lambda x,y: wup_measure(x,y)
+    our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
+    score_list=score_it(answers[0,1,2,3,4,5,6,7,8,9],predictions[0,1,2,3,4,5,6,7,8,9],our_set_membership)
+    final_score=float(sum(score_list))/float(len(score_list))
+    print(final_score)
+
+    # questions = questions[rand]
+    answers = answers[rand]
+    predictions = predictions[rand]
     print('\n')
     for i in range(0,N):
-        print(str(i)+'. '+questions[i])
+        print(str(i)+'. '+questions[rand[i]])
     print('\n')
-    print('Real' + '\t\t --- \t\t' + 'Prediction')
+    print('    Real' + '\t --- \t' + 'Prediction')
     for i in range(0,N):
-        print(str(i) + '. ' + answers[i] + '\t --- \t' + predictions[i])
+        if answers[i] == predictions[i]:
+            correct = '+++'
+        else:
+            correct = '---'
+        if len(answers[i]) < 4:
+            mid = '\t\t ' + correct + ' \t'
+        else:
+            mid = '\t ' + correct + ' \t'
+        if i < 10:
+            start = ' '
+        else: 
+            start = ''
+        print(start + str(i) + '. ' + answers[i] + mid + predictions[i])
 
 def main(argv=None):
     # EXAMPLES
@@ -303,12 +360,11 @@ def main(argv=None):
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
-    compare(test_x,test_t,qa_answer,10,train_token)
+    print_compare(test_x,test_t,qa_answer,20,train_token)
 
 
 
-    print('\nWUPS measure with threshold 0.9')
-    print(wup_measure(test_t,matrix_to_text(train_token, qa_answer.tolist())))
+    
 
 if __name__ == "__main__":
     sys.exit(main())
