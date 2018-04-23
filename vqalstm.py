@@ -265,9 +265,9 @@ def score_it(A,T,m):
 
 def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
-    questions = sequences_to_text(token, questions)
-    answers = matrix_to_text(token, answers.tolist())
-    predictions = matrix_to_text(token, predictions.tolist())
+    # questions = sequences_to_text(token, questions)
+    # answers = matrix_to_text(token, answers.tolist())
+    # predictions = matrix_to_text(token, predictions.tolist())
     if (compute_wups):
         questions = sequences_to_text(token, questions)
         answers = matrix_to_text(token, answers.tolist())
@@ -283,7 +283,7 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
         answers = np.asarray(answers)[rand]
         predictions = np.asarray(predictions)[rand]
     else:
-        questions = sequences_to_text(token,questions[rand])
+        questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
         answers = matrix_to_text(token, answers[rand].tolist())
         predictions = matrix_to_text(token, predictions[rand].tolist())
     print('\n')
