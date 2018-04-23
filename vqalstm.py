@@ -3,7 +3,7 @@
 # Requires Keras and Tensorflow backend
 
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Embedding, Input,Dropout,concatenate
+from keras.layers import Dense, Embedding, Input, Dropout, concatenate
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
@@ -36,10 +36,16 @@ def match_img_features(questions,img_features):
                 
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
-    text = pad_sequences(text,maxlen = 30)
+    text = pad_sequences(
+        text,
+        maxlen = 30)
     # text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence) = text.shape
+<<<<<<< HEAD
     voc = len(token.word_index.items())+1
+=======
+    voc = 1789 # Vocabulary size, hard coded to simplify code below
+>>>>>>> eb8ef06402ad331c2f68403f3013085effa549ba
     return text, N, sequence, voc
 
 def q_preprocess(text, token):
@@ -85,7 +91,6 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
 
 
 def build_classifier(words, images, t, e,l1, voc, batch):
-    print('Building text classifier...')
     word_input = Input(shape=(30,))
     word_embedding = Embedding(
         input_dim = voc,
@@ -94,30 +99,32 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         )(word_input)
     word_encoding = LSTM(
         l1,
-        )(word_embedding)
-    print('Building visual classifier...')
+        return_sequences = False)(word_embedding) 
     imshape = images.shape
     visual_input = Input(shape=(imshape[1],))
-    visual_encoding = Dense(imshape[1])(visual_input)
-    print('Merging...')
+    visual_encoding = Dense(imshape[1])(visual_input) 
     merged = concatenate([word_encoding,visual_encoding])
-    dropout = Dropout(0.2)(merged)
-    output = Dense(voc,activation='softmax',name='Output_layer')(dropout)
+    dropout = Dropout(0.5)(merged)
+    output = Dense(
+        voc,
+        activation = 'softmax',
+        name = 'Output_layer')(dropout)
     classifier = Model(
         inputs = [word_input,visual_input], 
         outputs = output)
     classifier.compile(
-        loss='categorical_crossentropy', 
-        optimizer='adam', 
-        metrics=['categorical_accuracy'])
+        loss = 'categorical_crossentropy', 
+        optimizer = 'adam', 
+        metrics = ['categorical_accuracy'])
     print('Training...')
     classifier.fit(
         [words, images],
         t, 
-        epochs=e, 
-        batch_size=batch,
-        validation_split=0.1)
+        epochs = e, 
+        batch_size = batch,
+        validation_split = 0.1)
     return classifier
+
 
 def sequences_to_text(token, x):
     print('Converting to text...')
@@ -154,14 +161,14 @@ def main(argv=None):
     argparser.add_argument('--e', type=int,
                            help='Number of epochs, default 1')
     argparser.add_argument('--ld1', type=int,
-                           help='Latent dimension 1, default 140')
+                           help='Latent dimension 1, default 512')
     argparser.add_argument('--b', type=int,
                            help='Batch size, default 32')
     args = argparser.parse_args(argv)
 
 
-    # Dimensionality reduction in encoder1 
-    ld1 = 140
+    # Hyper Parameters
+    ld1 = 512
     epochs = 10
     batch = 32
 
@@ -182,6 +189,8 @@ def main(argv=None):
     train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
     test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
     print(train_x.shape)
+    print(train_t.shape)
+
 
     # Build and train Question Answerer
     if args.qa:
@@ -195,9 +204,6 @@ def main(argv=None):
         classifier = build_classifier(train_x, train_imgs, train_t, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
-
-    #print('\nQuestion answerer parameters')
-    #classifier.summary()
 
     rand = np.random.choice(4000, 10)
 
