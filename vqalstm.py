@@ -102,7 +102,7 @@ def sequences_to_text(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
     from_categorical = lambda y: argmax(y, axis=-1).eval()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
     words_to_sentence = lambda y: ' '.join(filter(None, y))
     word_matrix = list(map(seqs_to_words, x))
     sentence_list = list(map(words_to_sentence, word_matrix))
@@ -184,9 +184,9 @@ def main(argv=None):
     print([test_t[rand]])
     print([qa_answer[rand]])
     print('\nFirst 10 answers:')
-    print(sequences_to_text(train_token, [test_t[rand]]))
+    print(sequences_to_text(train_token, test_t[rand]))
     print('\nPredicted answers:')
-    print(sequences_to_text(train_token, [qa_answer[rand]]))
+    print(sequences_to_text(train_token, qa_answer[rand]))
 
 if __name__ == "__main__":
     sys.exit(main())
