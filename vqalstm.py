@@ -39,9 +39,30 @@ def preprocess(text, token):
     text = pad_sequences(text,maxlen = 30)
     # text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence) = text.shape
-    voc = 1789
+    voc = len(token.word_index.items())+1
     return text, N, sequence, voc
 
+def q_preprocess(text, token):
+    text = token.texts_to_sequences(text)
+    text = pad_sequences(text,maxlen = 30)
+    # text = to_categorical(text, len(token.word_index.items())+1)
+    (N, sequence) = text.shape
+    voc = len(token.word_index.items())+1
+    return text, N, sequence, voc
+
+def a_preprocess(text, token):
+    text = token.texts_to_sequences(text)
+    text = pad_sequences(text,maxlen = 30)
+    text = to_categorical(text, len(token.word_index.items())+1)
+    (N, sequence,voc) = text.shape
+    return text, N, sequence, voc
+
+def multiple_hot(sequence):
+    sum = sequence[0]
+    for i in range(1,len(sequence)):
+            sum += sequence[i]
+    sum[0] = 0
+    return sum
 
 def load_dataset(filename, k=0, token=None,img_filename=None):
     corpus = open(filename).read().lower().splitlines()
@@ -52,10 +73,14 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     if token is None:
         token = Tokenizer()#oov_token='~')
         token.fit_on_texts(corpus)
-    cat_corpus, N, sequence, voc = preprocess(corpus, token)
+    q_corpus, N, sequence, voc = q_preprocess(corpus, token)
+    a_corpus, _, _, _ = a_preprocess(corpus, token)
     # Extracting Training data and initializing some variables for the model
-    x = cat_corpus[0:2*k:2]  # extract every second item from the list
-    t = cat_corpus[1:2*k:2]
+    x = q_corpus[0:2*k:2]  # extract every second item from the list
+    t = a_corpus[1:2*k:2]
+    t = np.asarray(list(map(multiple_hot,t)))
+    print(x.shape)
+    print(t.shape)
     return x, imgs,t, N, sequence, voc, token
 
 
@@ -76,8 +101,8 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     visual_encoding = Dense(imshape[1])(visual_input)
     print('Merging...')
     merged = concatenate([word_encoding,visual_encoding])
-    dropout = Dropout(0.5)(merged)
-    output = Dense(30,activation='softmax',name='Output_layer')(dropout)
+    dropout = Dropout(0.2)(merged)
+    output = Dense(voc,activation='softmax',name='Output_layer')(dropout)
     classifier = Model(
         inputs = [word_input,visual_input], 
         outputs = output)
@@ -99,12 +124,18 @@ def sequences_to_text(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
     from_categorical = lambda y: argmax(y, axis=-1).eval()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
     words_to_sentence = lambda y: ' '.join(filter(None, y))
     word_matrix = list(map(seqs_to_words, x))
     sentence_list = list(map(words_to_sentence, word_matrix))
     return '\n'.join(sentence_list)
 
+def sequence_to_text(token, x):
+    print('Converting to text...')
+    reverse_word_dict = dict(map(reversed, token.word_index.items()))
+    InteractiveSession()
+    from_categorical = lambda y: argmax(y, axis=-1).eval()
+    return reverse_word_dict.get(from_categorical(x))
 
 def matrix_to_text(token, x):
     print('Converting to text vector...')
@@ -177,9 +208,11 @@ def main(argv=None):
     print('Accuracy: ' + str(qa_result[1]))
 
     print('\nFirst 10 answers:')
-    print(sequences_to_text(train_token, test_t[rand]))
+    print(test_t[rand])
+    print(matrix_to_text(train_token, test_t[rand].tolist()))
     print('\nPredicted answers:')
-    print(sequences_to_text(train_token, qa_answer[rand]))
+    print(qa_answer[rand])
+    print(matrix_to_text(train_token, qa_answer[rand].tolist()))
 
 if __name__ == "__main__":
     sys.exit(main())
