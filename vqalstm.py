@@ -264,7 +264,7 @@ def print_compare(questions,answers,predictions,N,token):
     print('\nWUPS measure with threshold 0.9')
 
     our_element_membership=lambda x,y: wup_measure(x,y)
-    our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
+    our_set_membership=lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
     score_list=score_it(answers[0,1,2,3,4,5,6,7,8,9],predictions[0,1,2,3,4,5,6,7,8,9],our_set_membership)
     final_score=float(sum(score_list))/float(len(score_list))
     print(final_score)
@@ -353,9 +353,6 @@ def main(argv=None):
 
     print_compare(test_x,test_t,qa_answer,20,train_token)
 
-
-
-    
 
 if __name__ == "__main__":
     sys.exit(main())
