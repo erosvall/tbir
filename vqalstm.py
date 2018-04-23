@@ -12,6 +12,7 @@ from keras.backend import argmax
 from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 from keras import regularizers
+from nltk.corpus import wordnet as wn
 import numpy as np
 import os.path
 import argparse
@@ -26,6 +27,71 @@ def load_cnn(filename):
     images = np.asarray(images).astype(float)
     images = images[images[:,0].argsort()]
     return images[:,1:]
+
+
+def wup_measure(a,b,similarity_threshold=0.9):
+    # Fetched from https://www.programcreek.com/python/example/91610/nltk.corpus.wordnet.NOUN
+    # Original Author: mateuszmalinowski
+
+
+    """
+    Returns Wu-Palmer similarity score.
+    More specifically, it computes:
+        max_{x \in interp(a)} max_{y \in interp(b)} wup(x,y)
+        where interp is a 'interpretation field'
+    """
+    def get_semantic_field(a):
+        weight = 1.0
+        semantic_field = wn.synsets(a,pos=wn.NOUN)
+        return (semantic_field,weight)
+
+
+    def get_stem_word(a):
+        """
+        Sometimes answer has form word\d+:wordid.
+        If so we return word and downweight
+        """
+        weight = 1.0
+        return (a,weight)
+
+
+    global_weight=1.0
+
+    (a,global_weight_a)=get_stem_word(a)
+    (b,global_weight_b)=get_stem_word(b)
+    global_weight = min(global_weight_a,global_weight_b)
+
+    if a==b:
+        # they are the same
+        return 1.0*global_weight
+
+    if a==[] or b==[]:
+        return 0
+
+
+    interp_a,weight_a = get_semantic_field(a) 
+    interp_b,weight_b = get_semantic_field(b)
+
+    if interp_a == [] or interp_b == []:
+        return 0
+
+    # we take the most optimistic interpretation
+    global_max=0.0
+    for x in interp_a:
+        for y in interp_b:
+            local_score=x.wup_similarity(y)
+            if local_score > global_max:
+                global_max=local_score
+
+    # we need to use the semantic fields and therefore we downweight
+    # unless the score is high which indicates both are synonyms
+    if global_max < similarity_threshold:
+        interp_weight = 0.1
+    else:
+        interp_weight = 1.0
+
+    final_score = global_max * weight_a * weight_b * interp_weight * global_weight
+    return final_score 
 
     
 def match_img_features(questions,img_features):
@@ -87,6 +153,15 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
 
 
 def build_classifier(words, images, t, e,l1, voc, batch):
+
+
+    # Build text based input. embedding and LSTM layer
+    # The Input layer is only there for convenience and doesn't do anything
+    # The Embedding layer takes a 2D input (batch_size, sequence_length) and
+    # outputs a 3D tensor (batch_size,sequence_length,embedding_dim) for the 
+    # LSTM. The LSTM and Embedding layer match dimensions for convience. The
+    # LSTM is configured to only pass information forward at the end of the 
+    # sequence. 
     word_input = Input(shape=(30,))
     word_embedding = Embedding(
         input_dim = voc,
@@ -96,9 +171,16 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     word_encoding = LSTM(
         l1,
         return_sequences = False)(word_embedding) 
-    imshape = images.shape
-    visual_input = Input(shape=(imshape[1],))
-    visual_encoding = Dense(imshape[1])(visual_input) 
+
+
+    # Construtct the Image input part. Since no feature extraction 
+    # takes place we basically just run ahead here
+    visual_input = Input(shape=(images.shape[1],))
+    visual_encoding = Dense(images.shape[1])(visual_input) 
+
+
+
+    # We merge the model, add a dropout to combat some overfitting and fit.
     merged = concatenate([word_encoding,visual_encoding])
     dropout = Dropout(0.5)(merged)
     output = Dense(
@@ -216,14 +298,17 @@ def main(argv=None):
     
 
     print('\nEvaluating question answerer on test data')
-    qa_result = classifier.evaluate([test_x,test_imgs], test_t, batch_size=batch)
-    qa_answer = classifier.predict([test_x,test_imgs], batch_size=batch)
+    qa_result = classifier.evaluate([test_x,test_imgs], test_t, batch_size = batch)
+    qa_answer = classifier.predict([test_x,test_imgs], batch_size = batch)
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
     compare(test_x,test_t,qa_answer,10,train_token)
 
 
+
+    print('\nWUPS measure with threshold 0.9')
+    print(wup_measure(test_t,matrix_to_text(train_token, qa_answer.tolist())))
 
 if __name__ == "__main__":
     sys.exit(main())
