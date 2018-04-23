@@ -41,7 +41,7 @@ def preprocess(text, token):
         maxlen = 30)
     # text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence) = text.shape
-    voc = 1789
+    voc = 1789 # Vocabulary size, hard coded to simplify code below
     return text, N, sequence, voc
 
 
@@ -70,7 +70,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         )(word_input)
     word_encoding = LSTM(
         l1,
-        )(word_embedding) 
+        return_sequences = False)(word_embedding) 
     imshape = images.shape
     visual_input = Input(shape=(imshape[1],))
     visual_encoding = Dense(imshape[1])(visual_input) 
@@ -78,25 +78,25 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     dropout = Dropout(0.5)(merged)
     output = Dense(
         30,
-        activation='softmax',
-        name='Output_layer')(dropout)
+        activation = 'softmax',
+        name = 'Output_layer')(dropout)
     classifier = Model(
         inputs = [word_input,visual_input], 
         outputs = output)
     classifier.compile(
-        loss='categorical_crossentropy', 
-        optimizer='adam', 
-        metrics=['categorical_accuracy'])
+        loss = 'categorical_crossentropy', 
+        optimizer = 'adam', 
+        metrics = ['categorical_accuracy'])
     print('Training...')
     classifier.fit(
         [words, images],
         t, 
-        epochs=e, 
-        batch_size=batch,
-        validation_split=0.1)
+        epochs = e, 
+        batch_size = batch,
+        validation_split = 0.1)
     return classifier
 
-#This might needs some love before it works correctly....
+
 def sequences_to_text(token, x):
     print('Converting to text...')
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
@@ -155,8 +155,7 @@ def main(argv=None):
     test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
     print(train_x.shape)
     print(train_t.shape)
-    print(train_x[:3])
-    print(train_t[:3])
+
 
     # Build and train Question Answerer
     if args.qa:
@@ -171,9 +170,6 @@ def main(argv=None):
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
-    #print('\nQuestion answerer parameters')
-    #classifier.summary()
-
     rand = np.random.choice(4000, 10)
 
     print('\nEvaluating question answerer on test data')
@@ -181,8 +177,7 @@ def main(argv=None):
     qa_answer = classifier.predict([test_x,test_imgs], batch_size=batch)
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
-    print([test_t[rand]])
-    print([qa_answer[rand]])
+
     print('\nFirst 10 answers:')
     print(sequences_to_text(train_token, test_t[rand]))
     print('\nPredicted answers:')
