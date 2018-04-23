@@ -28,12 +28,8 @@ def load_cnn(filename):
     images = images[images[:,0].argsort()]
     return images[:,1:]
 
-
+# Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
 def wup_measure(a,b,similarity_threshold=0.9):
-    # Fetched from https://www.programcreek.com/python/example/91610/nltk.corpus.wordnet.NOUN
-    # Original Author: mateuszmalinowski
-
-
     """
     Returns Wu-Palmer similarity score.
     More specifically, it computes:
@@ -90,9 +86,8 @@ def wup_measure(a,b,similarity_threshold=0.9):
     else:
         interp_weight = 1.0
 
-    final_score = global_max * weight_a * weight_b * interp_weight * global_weight
+    final_score=global_max*weight_a*weight_b*interp_weight*global_weight
     return final_score 
-
     
 def match_img_features(questions,img_features):
     return np.asarray(list(map(lambda x: 
@@ -147,8 +142,6 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     x = q_corpus[0:2*k:2]  # extract every second item from the list
     t = a_corpus[1:2*k:2]
     t = np.asarray(list(map(multiple_hot,t)))
-    print(x.shape)
-    print(t.shape)
     return x, imgs,t, N, sequence, voc, token
 
 
@@ -278,8 +271,6 @@ def main(argv=None):
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
     test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
-    print(train_x.shape)
-    print(train_t.shape)
 
 
     # Build and train Question Answerer
