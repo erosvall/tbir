@@ -41,11 +41,7 @@ def preprocess(text, token):
         maxlen = 30)
     # text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence) = text.shape
-<<<<<<< HEAD
     voc = len(token.word_index.items())+1
-=======
-    voc = 1789 # Vocabulary size, hard coded to simplify code below
->>>>>>> eb8ef06402ad331c2f68403f3013085effa549ba
     return text, N, sequence, voc
 
 def q_preprocess(text, token):
