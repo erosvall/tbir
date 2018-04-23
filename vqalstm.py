@@ -263,40 +263,38 @@ def score_it(A,T,m):
     return min(score_left,score_right) 
 
 
-def print_compare(questions,answers,predictions,N,token):
+def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     questions = sequences_to_text(token, questions)
     answers = matrix_to_text(token, answers.tolist())
     predictions = matrix_to_text(token, predictions.tolist())
-    print('\nWUPS measure with threshold 0.9')
-
-    our_element_membership=lambda x,y: wup_measure(x,y)
-    our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
-    score_list=score_it(answers[0,1,2,3,4,5,6,7,8,9],predictions[0,1,2,3,4,5,6,7,8,9],our_set_membership)
-    final_score=float(sum(score_list))/float(len(score_list))
-    print(final_score)
-
-    # questions = questions[rand]
-    answers = answers[rand]
-    predictions = predictions[rand]
+    if (compute_wups):
+        questions = sequences_to_text(token, questions)
+        answers = matrix_to_text(token, answers.tolist())
+        predictions = matrix_to_text(token, predictions.tolist())
+        print('\nWUPS measure with threshold 0.9')
+        our_element_membership=lambda x,y: wup_measure(x,y)
+        our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
+        score_list=[score_it(answer,prediction,our_set_membership)
+                        for (answer,prediction) in zip(answers,predictions)]
+        final_score=float(sum(score_list))/float(len(score_list))
+        print(final_score)
+        questions = np.asarray(questions)[rand]
+        answers = np.asarray(answers)[rand]
+        predictions = np.asarray(predictions)[rand]
+    else:
+        questions = sequences_to_text(token,questions[rand])
+        answers = matrix_to_text(token, answers[rand].tolist())
+        predictions = matrix_to_text(token, predictions[rand].tolist())
     print('\n')
     for i in range(0,N):
-        print(str(i)+'. '+questions[rand[i]])
+        print(str(i)+'. '+questions[i])
     print('\n')
     print('    Real' + '\t --- \t' + 'Prediction')
     for i in range(0,N):
-        if answers[i] == predictions[i]:
-            correct = '+++'
-        else:
-            correct = '---'
-        if len(answers[i]) < 4:
-            mid = '\t\t ' + correct + ' \t'
-        else:
-            mid = '\t ' + correct + ' \t'
-        if i < 10:
-            start = ' '
-        else: 
-            start = ''
+        correct = '+++' if answers[i] == predictions[i] else '---'
+        mid = '\t\t ' + correct + ' \t' if len(answers[i]) < 4 else '\t ' + correct + ' \t'
+        start = ' ' if i < 10 else ''
         print(start + str(i) + '. ' + answers[i] + mid + predictions[i])
 
 def main(argv=None):
@@ -311,6 +309,8 @@ def main(argv=None):
                            help='Latent dimension 1, default 512')
     argparser.add_argument('--b', type=int,
                            help='Batch size, default 32')
+    argparser.add_argument('--wups', action="store_true",
+                           help='Compute the WUPS Score')
     args = argparser.parse_args(argv)
 
 
@@ -360,7 +360,7 @@ def main(argv=None):
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
-    print_compare(test_x,test_t,qa_answer,20,train_token)
+    print_compare(test_x,test_t,qa_answer,20,train_token,args.wups)
 
 
 
