@@ -12,6 +12,7 @@ from keras.backend import argmax
 from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 from keras import regularizers
+from nltk.corpus import wordnet as wn
 import numpy as np
 import os.path
 import argparse
@@ -29,6 +30,10 @@ def load_cnn(filename):
 
 
 def wup_measure(a,b,similarity_threshold=0.9):
+    # Fetched from https://www.programcreek.com/python/example/91610/nltk.corpus.wordnet.NOUN
+    # Original Author: mateuszmalinowski
+
+
     """
     Returns Wu-Palmer similarity score.
     More specifically, it computes:
