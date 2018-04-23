@@ -73,7 +73,7 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
         questions = corpus[0:2*k:2]
         imgs = match_img_features(questions,img_features)
     if token is None:
-        token = Tokenizer()#oov_token='~')
+        token = Tokenizer(oov_token='~')
         token.fit_on_texts(corpus)
     q_corpus, N, sequence, voc = q_preprocess(corpus, token)
     a_corpus, _, _, _ = a_preprocess(corpus, token)
@@ -127,11 +127,11 @@ def sequences_to_text(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
     from_categorical = lambda y: argmax(y, axis=-1).eval()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
     words_to_sentence = lambda y: ' '.join(filter(None, y))
     word_matrix = list(map(seqs_to_words, x))
     sentence_list = list(map(words_to_sentence, word_matrix))
-    return '\n'.join(sentence_list)
+    return sentence_list
 
 def sequence_to_text(token, x):
     print('Converting to text...')
@@ -147,6 +147,18 @@ def matrix_to_text(token, x):
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
     return seqs_to_words(x)
 
+def compare(questions,answers,predictions,N,token):
+    rand = np.random.choice(4000, N)
+    questions = sequences_to_text(token,questions)
+    answers = matrix_to_text(token, answers[rand].tolist())
+    predictions = matrix_to_text(token, predictions[rand].tolist())
+    print('\n')
+    for i in range(0,N):
+        print(str(i)+'. '+questions[i])
+    print('\n')
+    print('Real' + '\t\t --- \t\t' + 'Prediction')
+    for i in range(0,N):
+        print(str(i) + '. ' + answers[i] + '\t --- \t' + predictions[i])
 
 def main(argv=None):
     # EXAMPLES
@@ -165,7 +177,7 @@ def main(argv=None):
 
     # Hyper Parameters
     ld1 = 512
-    epochs = 10
+    epochs = 20
     batch = 32
 
     if args.ld1:
@@ -201,7 +213,7 @@ def main(argv=None):
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
-    rand = np.random.choice(4000, 10)
+    
 
     print('\nEvaluating question answerer on test data')
     qa_result = classifier.evaluate([test_x,test_imgs], test_t, batch_size=batch)
@@ -209,12 +221,9 @@ def main(argv=None):
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
-    print('\nFirst 10 answers:')
-    print(test_t[rand])
-    print(matrix_to_text(train_token, test_t[rand].tolist()))
-    print('\nPredicted answers:')
-    print(qa_answer[rand])
-    print(matrix_to_text(train_token, qa_answer[rand].tolist()))
+    compare(test_x,test_t,qa_answer,10,train_token)
+
+
 
 if __name__ == "__main__":
     sys.exit(main())
