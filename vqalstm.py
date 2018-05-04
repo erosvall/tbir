@@ -145,7 +145,7 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     t = np.asarray(list(map(multiple_hot,t)))
     return x, imgs,t, N, sequence, voc, token
 
-def build_autoencoder(voc,l1,w,t,e,b):
+def build_autoencoder(voc,l1,w,e,b):
     auto_input = Input(shape=(30,))
     auto_embedding = Embedding(
         input_dim = voc,
@@ -158,7 +158,7 @@ def build_autoencoder(voc,l1,w,t,e,b):
     repeat_vector = RepeatVector(30)(encoder)
     decoder = LSTM(voc)(repeat_vector)
     output = Dense(
-        voc,
+        30,
         activation = 'softmax')(decoder)
     autoencoder = Model(
         inputs = auto_input, 
@@ -169,12 +169,12 @@ def build_autoencoder(voc,l1,w,t,e,b):
         metrics = ['categorical_accuracy'])
     autoencoder.fit(
         w,
-        t,
+        w,
         epochs = e,
         batch_size = b,
         validation_split = 0.1
         )
-    return encoder.get_config(), encoder.get_weights()
+    return encoder.get_weights()
 
 def build_classifier(words, images, t, e,l1, voc, batch):
 
@@ -195,7 +195,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         l1)(word_embedding) 
 
     if True:
-        autoencoder_config, autoencoder_weights = build_autoencoder(voc,l1,words,t,e,batch)
+        autoencoder_weights = build_autoencoder(voc,l1,words,e,batch)
         encoder = LSTM(l1)(word_embedding)
         encoder.set_weights(autoencoder_weights)
 
