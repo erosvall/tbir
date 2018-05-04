@@ -19,7 +19,8 @@ import argparse
 import sys
 
 def load_cnn(filename):
-    # Returns a matrix where each row corresponds to imageXXXX, note that index determines image number
+    # Returns a matrix where each row corresponds to imageXXXX, 
+    # note that index determines image number
     images = open(filename).read().splitlines()
     for i,img in enumerate(images):
         images[i] = img.split(',')
@@ -28,8 +29,9 @@ def load_cnn(filename):
     images = images[images[:,0].argsort()]
     return images[:,1:]
 
-# Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
 def wup_measure(a,b,similarity_threshold=0.9):
+    # Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
+
     """
     Returns Wu-Palmer similarity score.
     More specifically, it computes:
@@ -93,7 +95,6 @@ def match_img_features(questions,img_features):
     return np.asarray(list(map(lambda x: 
                 img_features[int(x.split('image')[-1].split(' ')[0])-1],
                 questions)))
-
                 
 def preprocess(text, token):
     text = token.texts_to_sequences(text)
@@ -144,7 +145,6 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     t = np.asarray(list(map(multiple_hot,t)))
     return x, imgs,t, N, sequence, voc, token
 
-
 def build_classifier(words, images, t, e,l1, voc, batch):
 
 
@@ -162,8 +162,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         mask_zero = True
         )(word_input)
     word_encoding = LSTM(
-        l1,
-        return_sequences = False)(word_embedding) 
+        l1)(word_embedding) 
 
 
     # Construtct the Image input part. Since no feature extraction 
@@ -174,8 +173,10 @@ def build_classifier(words, images, t, e,l1, voc, batch):
 
 
     # We merge the model, add a dropout to combat some overfitting and fit.
-    merged = concatenate([word_encoding,visual_encoding])
+    merged = concatenate([word_encoding,visual_encoding]) # Concatenate an Autoencoder hidden layer here
+    # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
+    # add lstm here
     output = Dense(
         voc,
         activation = 'softmax',
@@ -195,7 +196,6 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         batch_size = batch,
         validation_split = 0.1)
     return classifier
-
 
 def sequences_to_text(token, x):
     print('Converting to text...')
@@ -254,7 +254,6 @@ def score_it(A,T,m):
     score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
     score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
     return min(score_left,score_right) 
-
 
 def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
