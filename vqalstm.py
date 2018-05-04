@@ -3,11 +3,11 @@
 # Requires Keras and Tensorflow backend
 
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Embedding, Input, Dropout, concatenate
+from keras.layers import Dense, Embedding, Input, Dropout, concatenate, RepeatVector
 from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical
+from keras.utils import to_categorical, plot_model
 from keras.backend import argmax
 from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
@@ -145,8 +145,38 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     t = np.asarray(list(map(multiple_hot,t)))
     return x, imgs,t, N, sequence, voc, token
 
-def build_classifier(words, images, t, e,l1, voc, batch):
+def build_autoencoder(voc,l1,w,t,e,b):
+    auto_input = Input(shape=(30,))
+    auto_embedding = Embedding(
+        input_dim = voc,
+        output_dim = l1,
+        mask_zero = True
+        )(auto_input)
+    encoder = LSTM(
+        l1,
+        name='encoder')(auto_embedding)
+    repeat_vector = RepeatVector(30)(encoder)
+    decoder = LSTM(voc)(repeat_vector)
+    output = Dense(
+        voc,
+        activation = 'softmax')(decoder)
+    autoencoder = Model(
+        inputs = auto_input, 
+        outputs = output)
+    autoencoder.compile(
+        loss = 'categorical_crossentropy', 
+        optimizer = 'adam', 
+        metrics = ['categorical_accuracy'])
+    autoencoder.fit(
+        w,
+        t,
+        epochs = e,
+        batch_size = b,
+        validation_split = 0.1
+        )
+    return encoder.get_config(), encoder.get_weights()
 
+def build_classifier(words, images, t, e,l1, voc, batch):
 
     # Build text based input. embedding and LSTM layer
     # The Input layer is only there for convenience and doesn't do anything
@@ -164,6 +194,11 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     word_encoding = LSTM(
         l1)(word_embedding) 
 
+    if True:
+        autoencoder_config, autoencoder_weights = build_autoencoder(voc,l1,words,t,e,batch)
+        encoder = LSTM(l1)(word_embedding)
+        encoder.set_weights(autoencoder_weights)
+
 
     # Construtct the Image input part. Since no feature extraction 
     # takes place we basically just run ahead here
@@ -173,14 +208,15 @@ def build_classifier(words, images, t, e,l1, voc, batch):
 
 
     # We merge the model, add a dropout to combat some overfitting and fit.
-    merged = concatenate([word_encoding,visual_encoding]) # Concatenate an Autoencoder hidden layer here
+    merged = concatenate([word_encoding,visual_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
-    # add lstm here
+    repeat_vector = RepeatVector(7)(dropout)
+    answer_layer = LSTM(128)(repeat_vector) # Ability to answer multiple answers
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'Output_layer')(dropout)
+        name = 'Output_layer')(answer_layer)
     classifier = Model(
         inputs = [word_input,visual_input], 
         outputs = output)
@@ -195,6 +231,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         epochs = e, 
         batch_size = batch,
         validation_split = 0.1)
+    plot_model(classifier, to_file='classifier.png')
     return classifier
 
 def sequences_to_text(token, x):
@@ -285,6 +322,8 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
         mid = '\t\t ' + correct + ' \t' if len(answers[i]) < 4 else '\t ' + correct + ' \t'
         start = ' ' if i < 10 else ''
         print(start + str(i) + '. ' + answers[i] + mid + predictions[i])
+    print(answers.shape)
+    print(predictions.shape)
 
 def main(argv=None):
     # EXAMPLES
@@ -305,7 +344,7 @@ def main(argv=None):
 
     # Hyper Parameters
     ld1 = 512
-    epochs = 20
+    epochs = 1
     batch = 32
 
     if args.ld1:
