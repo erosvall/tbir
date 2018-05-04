@@ -174,7 +174,7 @@ def build_autoencoder(voc,l1,w,e,b):
         batch_size = b,
         validation_split = 0.1
         )
-    return encoder.get_weights()
+    return autoencoder
 
 def build_classifier(words, images, t, e,l1, voc, batch):
 
@@ -195,9 +195,10 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         l1)(word_embedding) 
 
     if True:
-        autoencoder_weights = build_autoencoder(voc,l1,words,e,batch)
-        encoder = LSTM(l1)(word_embedding)
-        encoder.set_weights(autoencoder_weights)
+        autoencoder = build_autoencoder(voc,l1,words,e,batch)
+        # encoder = LSTM(l1)(word_embedding)
+        encoder = autoencoder.layers[2](word_embedding)
+        # encoder.layers[0].set_weights(autoencoder.layers[2].get_weights())
 
 
     # Construtct the Image input part. Since no feature extraction 
@@ -211,12 +212,12 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     merged = concatenate([word_encoding,visual_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
-    repeat_vector = RepeatVector(7)(dropout)
-    answer_layer = LSTM(128)(repeat_vector) # Ability to answer multiple answers
+    # repeat_vector = RepeatVector(7)(dropout)
+    # answer_layer = LSTM(128)(repeat_vector) # Ability to answer multiple answers
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'Output_layer')(answer_layer)
+        name = 'Output_layer')(Dropout)
     classifier = Model(
         inputs = [word_input,visual_input], 
         outputs = output)
@@ -231,7 +232,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         epochs = e, 
         batch_size = batch,
         validation_split = 0.1)
-    plot_model(classifier, to_file='classifier.png')
+    # plot_model(classifier, to_file='classifier.png')
     return classifier
 
 def sequences_to_text(token, x):
@@ -257,6 +258,18 @@ def matrix_to_text(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
+    return seqs_to_words(x)
+
+def answermatrix_to_text(token, x):
+    print('Converting to text vector...')
+    reverse_word_dict = dict(map(reversed, token.word_index.items()))
+    InteractiveSession()
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
+    print("------------------------------------")
+    first = x[0]
+    print(first)
+    print(argmax(x,axis=-1))
+    print("------------------------------------")
     return seqs_to_words(x)
 
 def fuzzy_set_membership_measure(x,A,m):
@@ -296,7 +309,7 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     if (compute_wups):
         questions = sequences_to_text(token, questions)
-        answers = matrix_to_text(token, answers.tolist())
+        answers = answermatrix_to_text(token, answers.tolist())
         predictions = matrix_to_text(token, predictions.tolist())
         print('\nWUPS measure with threshold 0.9')
         our_element_membership=lambda x,y: wup_measure(x,y)
@@ -310,7 +323,7 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
         predictions = np.asarray(predictions)[rand]
     else:
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
-        answers = matrix_to_text(token, answers[rand].tolist())
+        answers = answermatrix_to_text(token, answers[rand].tolist())
         predictions = matrix_to_text(token, predictions[rand].tolist())
     print('\n')
     for i in range(0,N):
@@ -322,8 +335,8 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
         mid = '\t\t ' + correct + ' \t' if len(answers[i]) < 4 else '\t ' + correct + ' \t'
         start = ' ' if i < 10 else ''
         print(start + str(i) + '. ' + answers[i] + mid + predictions[i])
-    print(answers.shape)
-    print(predictions.shape)
+    print(len(answers))
+    print(len(predictions))
 
 def main(argv=None):
     # EXAMPLES
@@ -333,7 +346,7 @@ def main(argv=None):
                            help='Filename of existing classifier model')
     argparser.add_argument('--e', type=int,
                            help='Number of epochs, default 1')
-    argparser.add_argument('--ld1', type=int,
+    argparser.add_argument('--ld1', type=int,   
                            help='Latent dimension 1, default 512')
     argparser.add_argument('--b', type=int,
                            help='Batch size, default 32')
