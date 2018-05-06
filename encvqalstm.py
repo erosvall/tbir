@@ -90,7 +90,7 @@ def wup_measure(a,b,similarity_threshold=0.9):
 
     final_score=global_max*weight_a*weight_b*interp_weight*global_weight
     return final_score 
-    
+
 def match_img_features(questions,img_features):
     return np.asarray(list(map(lambda x: 
                 img_features[int(x.split('image')[-1].split(' ')[0])-1],
@@ -127,7 +127,7 @@ def multiple_hot(sequence):
             sum += sequence[i]
     sum[0] = 0
     return sum
-    
+
 def load_dataset(filename, k=0, token=None,img_filename=None):
     corpus = open(filename).read().lower().splitlines()
     if not img_filename is None:
@@ -145,39 +145,9 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     t = np.asarray(list(map(multiple_hot,t)))
     return x, imgs,t, N, sequence, voc, token
 
-def build_autoencoder(voc,l1,w,e,b):
-    auto_input = Input(shape=(30,))
-    auto_embedding = Embedding(
-        input_dim = voc,
-        output_dim = l1,
-        mask_zero = True
-        )(auto_input)
-    encoder = LSTM(
-        l1,
-        name='encoder')(auto_embedding)
-    repeat_vector = RepeatVector(30)(encoder)
-    decoder = LSTM(voc)(repeat_vector)
-    output = Dense(
-        30,
-        activation = 'softmax')(decoder)
-    autoencoder = Model(
-        inputs = auto_input, 
-        outputs = output)
-    autoencoder.compile(
-        loss = 'categorical_crossentropy', 
-        optimizer = 'adam', 
-        metrics = ['categorical_accuracy'])
-    autoencoder.fit(
-        w,
-        w,
-        epochs = e,
-        batch_size = b,
-        validation_split = 0.1
-        )
-    return autoencoder
-
 def build_classifier(words, images, t, e,l1, voc, batch):
-
+    print('Building model...\n')
+    print(words.shape)
     # Build text based input. embedding and LSTM layer
     # The Input layer is only there for convenience and doesn't do anything
     # The Embedding layer takes a 2D input (batch_size, sequence_length) and
@@ -185,26 +155,40 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     # LSTM. The LSTM and Embedding layer match dimensions for convience. The
     # LSTM is configured to only pass information forward at the end of the 
     # sequence. 
-    word_input = Input(shape=(30,))
+    word_input = Input(shape=(30,),name='Text_input')
     word_embedding = Embedding(
         input_dim = voc,
         output_dim = l1,
         mask_zero = True
         )(word_input)
     word_encoding = LSTM(
-        l1)(word_embedding) 
-
-    if True:
-        autoencoder = build_autoencoder(voc,l1,words,e,batch)
-        # encoder = LSTM(l1)(word_embedding)
-        encoder = autoencoder.layers[2](word_embedding)
-        # encoder.layers[0].set_weights(autoencoder.layers[2].get_weights())
+        l1,
+        name = 'Text_features'
+        )(word_embedding) 
+    # Autoencoder part. It uses its own auxiliary output for optimization.
+    # It borrows the same textual input as the other LSTM layer, in addition
+    # does it concatenate with the rest of the model.
+    encoder = LSTM(
+        l1,
+        name='encoder'
+        )(word_embedding)
+    repeat_vector = RepeatVector(30)(encoder)
+    decoder = LSTM(
+        voc,
+        name='decoder'
+        )(repeat_vector)
+        #This LSTM may need to be restructured. At the moment it outputs 6795x30... but i might need onehot
+    autoencoder_output = Dense(
+        30,
+        activation = 'softmax',
+        name = 'Autoencoder_output'
+        )(decoder)
 
 
     # Construtct the Image input part. Since no feature extraction 
     # takes place we basically just run ahead here
-    visual_input = Input(shape=(images.shape[1],))
-    visual_encoding = Dense(images.shape[1])(visual_input) 
+    visual_input = Input(shape=(images.shape[1],),name='Image_input')
+    visual_encoding = Dense(images.shape[1],name='Image_features')(visual_input) 
 
 
 
@@ -212,27 +196,34 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     merged = concatenate([word_encoding,visual_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
-    # repeat_vector = RepeatVector(7)(dropout)
-    # answer_layer = LSTM(128)(repeat_vector) # Ability to answer multiple answers
+    repeat_vector = RepeatVector(7)(dropout)
+    answer_layer = LSTM(
+    voc,
+    return_sequences = True,
+    name = 'answer_sequence'
+    )(repeat_vector) # Ability to answer multiple answers
+
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'Output_layer')(Dropout)
+        name = 'Output_layer')(answer_layer)
     classifier = Model(
-        inputs = [word_input,visual_input], 
-        outputs = output)
+        inputs = [word_input, visual_input], 
+        outputs = [output, autoencoder_output])
     classifier.compile(
         loss = 'categorical_crossentropy', 
         optimizer = 'adam', 
-        metrics = ['categorical_accuracy'])
-    print('Training...')
+        metrics = ['categorical_accuracy'],
+        loss_weights=[1., 0.2])
+    plot_model(classifier, to_file='classifier.png')
+    # Need to restructure t to onehot representation. we want it to be 6795x7x1790
+    print('Training...\n')
     classifier.fit(
         [words, images],
-        t, 
+        [t, words], 
         epochs = e, 
         batch_size = batch,
         validation_split = 0.1)
-    # plot_model(classifier, to_file='classifier.png')
     return classifier
 
 def sequences_to_text(token, x):
@@ -265,18 +256,12 @@ def answermatrix_to_text(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
-    y = list()
-    for i in range(0,len(x)):
-        a = x[i]
-        b = list()
-        for j in range(0,7):
-            index = argmax(a,axis=-1).eval()
-            answer = reverse_word_dict.get(index)
-            a[index] = 0
-            b.append(answer)
-        y.append(b)
-    # return seqs_to_words(x)
-    return y
+    print("------------------------------------")
+    first = x[0]
+    print(first)
+    print(argmax(x,axis=-1))
+    print("------------------------------------")
+    return seqs_to_words(x)
 
 def fuzzy_set_membership_measure(x,A,m):
     """
@@ -316,7 +301,7 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     if (compute_wups):
         questions = sequences_to_text(token, questions)
         answers = answermatrix_to_text(token, answers.tolist())
-        predictions = answermatrix_to_text(token, predictions.tolist())
+        predictions = matrix_to_text(token, predictions.tolist())
         print('\nWUPS measure with threshold 0.9')
         our_element_membership=lambda x,y: wup_measure(x,y)
         our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
@@ -330,35 +315,19 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     else:
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
         answers = answermatrix_to_text(token, answers[rand].tolist())
-        predictions = answermatrix_to_text(token, predictions[rand].tolist())
+        predictions = matrix_to_text(token, predictions[rand].tolist())
     print('\n')
     for i in range(0,N):
         print(str(i)+'. '+questions[i])
     print('\n')
-    maxa = list(map(lambda x: 0 if x is None else len(x),answers[0]))
-    maxp = list(map(lambda x: 0 if x is None else len(x),predictions[0]))
+    print('    Real' + '\t --- \t' + 'Prediction')
     for i in range(0,N):
-        for j in range(0,len(answers[0])):
-            if not answers[i][j] is None and len(answers[i][j]) > maxa[j]:
-                maxa[j] = len(answers[i][j])
-            if not predictions[i][j] is None and len(predictions[i][j]) > maxp[j]:
-                maxp[j] = len(predictions[i][j])
-    formata = ''
-    formatp = ''
-    for i in range(0,len(answers[0])):
-        if maxa[i] > 0:
-            formata += '{:'+str(maxa[i])+'} '
-        if maxp[i] > 0:
-            formatp += '{:'+str(maxp[i])+'} '
-    for i in range(0,N):
+        correct = '+++' if answers[i] == predictions[i] else '---'
+        mid = '\t\t ' + correct + ' \t' if len(answers[i]) < 4 else '\t ' + correct + ' \t'
         start = ' ' if i < 10 else ''
-        correct = ' +++ ' if len(set(answers[i]).intersection(predictions[i])) > 0 else ' --- '
-        answerlist = list(map(lambda x: "" if x is None else x,answers[i]))
-        predictionlist = list(map(lambda x: "" if x is None else x,predictions[i]))
-        print(start + str(i) + '. '
-             + formata.format(*answerlist)
-             + correct
-             + formatp.format(*predictionlist))
+        print(start + str(i) + '. ' + answers[i] + mid + predictions[i])
+    print(len(answers))
+    print(len(predictions))
 
 def main(argv=None):
     # EXAMPLES
