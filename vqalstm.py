@@ -265,12 +265,18 @@ def answermatrix_to_text(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     InteractiveSession()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
-    print("------------------------------------")
-    first = x[0]
-    print(first)
-    print(argmax(x,axis=-1))
-    print("------------------------------------")
-    return seqs_to_words(x)
+    y = list()
+    for i in range(0,len(x)):
+        a = x[i]
+        b = list()
+        for j in range(0,7):
+            index = argmax(a,axis=-1).eval()
+            answer = reverse_word_dict.get(index)
+            a[index] = 0
+            b.append(answer)
+        y.append(b)
+    # return seqs_to_words(x)
+    return y
 
 def fuzzy_set_membership_measure(x,A,m):
     """
@@ -310,7 +316,7 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     if (compute_wups):
         questions = sequences_to_text(token, questions)
         answers = answermatrix_to_text(token, answers.tolist())
-        predictions = matrix_to_text(token, predictions.tolist())
+        predictions = answermatrix_to_text(token, predictions.tolist())
         print('\nWUPS measure with threshold 0.9')
         our_element_membership=lambda x,y: wup_measure(x,y)
         our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
@@ -324,19 +330,35 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     else:
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
         answers = answermatrix_to_text(token, answers[rand].tolist())
-        predictions = matrix_to_text(token, predictions[rand].tolist())
+        predictions = answermatrix_to_text(token, predictions[rand].tolist())
     print('\n')
     for i in range(0,N):
         print(str(i)+'. '+questions[i])
     print('\n')
-    print('    Real' + '\t --- \t' + 'Prediction')
+    maxa = list(map(lambda x: 0 if x is None else len(x),answers[0]))
+    maxp = list(map(lambda x: 0 if x is None else len(x),predictions[0]))
     for i in range(0,N):
-        correct = '+++' if answers[i] == predictions[i] else '---'
-        mid = '\t\t ' + correct + ' \t' if len(answers[i]) < 4 else '\t ' + correct + ' \t'
+        for j in range(0,len(answers[0])):
+            if not answers[i][j] is None and len(answers[i][j]) > maxa[j]:
+                maxa[j] = len(answers[i][j])
+            if not predictions[i][j] is None and len(predictions[i][j]) > maxp[j]:
+                maxp[j] = len(predictions[i][j])
+    formata = ''
+    formatp = ''
+    for i in range(0,len(answers[0])):
+        if maxa[i] > 0:
+            formata += '{:'+str(maxa[i])+'} '
+        if maxp[i] > 0:
+            formatp += '{:'+str(maxp[i])+'} '
+    for i in range(0,N):
         start = ' ' if i < 10 else ''
-        print(start + str(i) + '. ' + answers[i] + mid + predictions[i])
-    print(len(answers))
-    print(len(predictions))
+        correct = ' +++ ' if len(set(answers[i]).intersection(predictions[i])) > 0 else ' --- '
+        answerlist = list(map(lambda x: "" if x is None else x,answers[i]))
+        predictionlist = list(map(lambda x: "" if x is None else x,predictions[i]))
+        print(start + str(i) + '. '
+             + formata.format(*answerlist)
+             + correct
+             + formatp.format(*predictionlist))
 
 def main(argv=None):
     # EXAMPLES
