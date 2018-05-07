@@ -278,6 +278,70 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         validation_split = 0.1)
     return classifier
 
+def build_classifier1(words, images, t, e,l1, voc, batch):
+    print('Building model...\n')
+    # Build text based input. embedding and LSTM layer
+    # The Input layer is only there for convenience and doesn't do anything
+    # The Embedding layer takes a 2D input (batch_size, sequence_length) and
+    # outputs a 3D tensor (batch_size,sequence_length,embedding_dim) for the 
+    # LSTM. The LSTM and Embedding layer match dimensions for convience. The
+    # LSTM is configured to only pass information forward at the end of the 
+    # sequence. 
+    word_input = Input(shape=(30,),name='Text_input')
+    word_embedding = Embedding(
+        input_dim = voc,
+        output_dim = l1,
+        mask_zero = True
+        )(word_input)
+    word_encoding = LSTM(
+        l1,
+        name = 'Text_features'
+        )(word_embedding) 
+    
+    # Construtct the Image input part. Since no feature extraction 
+    # takes place we basically just run ahead here
+    visual_input = Input(shape=(images.shape[1],),name='Image_input')
+    visual_encoding = Dense(images.shape[1],name='Image_features')(visual_input) 
+
+
+
+    # We merge the model, add a dropout to combat some overfitting and fit.
+    merged = concatenate([word_encoding,visual_encoding]) # Concatenate an Autoencoder hidden layer here
+    # We might want a LSTM layer with return sequence set to true here?
+    dropout = Dropout(0.5)(merged)
+    repeat_vector = RepeatVector(7)(dropout)
+    answer_layer = LSTM(
+    voc,
+    return_sequences = True,
+    name = 'answer_sequence'
+    )(repeat_vector) # Ability to answer multiple answers
+
+    output = Dense(
+        voc,
+        activation = 'softmax',
+        name = 'Output_layer')(answer_layer)
+    classifier = Model(
+        inputs = [word_input, visual_input], 
+        outputs = [output])
+    classifier.compile(
+        loss = 'categorical_crossentropy', 
+        optimizer = 'adam', 
+        metrics = ['categorical_accuracy'],
+        )
+
+    # plot_model(classifier, to_file='classifier.png')
+
+    print('Training...\n')
+    classifier.fit(
+        [words, images],
+        t, 
+        epochs = e, 
+        batch_size = batch,
+        validation_split = 0.1)
+    return classifier
+
+
+
 def sequences_to_text(token, x):
     print('Converting to text...')
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
@@ -385,7 +449,7 @@ def main(argv=None):
         classifier = load_model(qa_file_id)
     else:
         print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_classifier(train_x, train_imgs, train_t, epochs, ld1, voc, batch)
+        classifier = build_classifier1(train_x, train_imgs, train_t, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
