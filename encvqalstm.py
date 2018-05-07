@@ -214,7 +214,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         loss = 'categorical_crossentropy', 
         optimizer = 'adam', 
         metrics = ['categorical_accuracy'],
-        loss_weights=[1., 0.2])
+        loss_weights=[1., 1.])
     plot_model(classifier, to_file='classifier.png')
     # Need to restructure t to onehot representation. we want it to be 6795x7x1790
     print('Training...\n')
