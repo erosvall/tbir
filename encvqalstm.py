@@ -217,18 +217,15 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     # Autoencoder part. It uses its own auxiliary output for optimization.
     # It borrows the same textual input as the other LSTM layer, in addition
     # does it concatenate with the rest of the model.
-    encoder= LSTM( # , state_h, state_c 
+    encoder= LSTM(
         l1,
-        name='encoder',
-        #return_state = True
+        name='encoder'
         )(word_embedding)
     repeat_vector = RepeatVector(30)(encoder)
-    decoder = LSTM(
+    decoder= LSTM(
         voc,
-        name='decoder',
-        #inital_state = [state_h, state_c]
+        name='decoder'
         )(repeat_vector)
-        #This LSTM may need to be restructured. At the moment it outputs 6795x30... but i might need onehot
     autoencoder_output = Dense(
         30,
         activation = 'softmax',
@@ -267,7 +264,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         metrics = ['categorical_accuracy'],
         loss_weights=[1., 1.])
 
-    # plot_model(classifier, to_file='classifier.png')
+    # plot_model(classifier, to_file='classifier_w_autoencoder.png')
 
     print('Training...\n')
     classifier.fit(
@@ -339,8 +336,6 @@ def build_classifier1(words, images, t, e,l1, voc, batch):
         batch_size = batch,
         validation_split = 0.1)
     return classifier
-
-
 
 def sequences_to_text(token, x):
     print('Converting to text...')
