@@ -29,7 +29,8 @@ def load_cnn(filename):
     images = images[images[:,0].argsort()]
     return images[:,1:]
 
-def wup_measure(a,b,similarity_threshold=0.9):
+def compute_wups(token,):
+	def wup_measure(a,b,similarity_threshold=0.9):
     # Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
 
     """
@@ -90,6 +91,55 @@ def wup_measure(a,b,similarity_threshold=0.9):
 
     final_score=global_max*weight_a*weight_b*interp_weight*global_weight
     return final_score 
+    
+	def fuzzy_set_membership_measure(x,A,m):
+	    """
+	    Set membership measure.
+	    x: element
+	    A: set of elements
+	    m: point-wise element-to-element measure m(a,b) ~ similarity(a,b)
+
+	    This function implments a fuzzy set membership measure:
+	        m(x \in A) = max_{a \in A} m(x,a)}
+	    """
+	    return 0 if A==[] else max(list(map(lambda a: m(x,a), A)))
+
+	def score_it(A,T,m):
+	    """
+	    A: list of A items 
+	    T: list of T items
+	    m: set membership measure
+	        m(a \in A) gives a membership quality of a into A 
+
+	    This function implements a fuzzy accuracy score:
+	        score(A,T) = min{prod_{a \in A} m(a \in T), prod_{t \in T} m(a \in A)}
+	        where A and T are set representations of the answers
+	        and m is a measure
+	    """
+	    if A==[] and T==[]:
+	        return 1
+
+	    # print A,T
+
+	    score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
+	    score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
+	    return min(score_left,score_right) 
+        questions = sequences_to_text(token, questions)
+        answers = answermatrix_to_text(token, answers.tolist())
+        predictions = matrix_to_text(token, predictions.tolist())
+        print('\nWUPS measure with threshold 0.9')
+        our_element_membership=lambda x,y: wup_measure(x,y)
+        our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
+        score_list=[score_it(answer,prediction,our_set_membership)
+                        for (answer,prediction) in zip(answers,predictions)]
+        final_score=float(sum(score_list))/float(len(score_list))
+        print(final_score)
+        questions = np.asarray(questions)[rand]
+        answers = np.asarray(answers)[rand]
+        predictions = np.asarray(predictions)[rand]
+
+
+
 
 def match_img_features(questions,img_features):
     return np.asarray(list(map(lambda x: 
@@ -116,7 +166,7 @@ def q_preprocess(text, token):
 
 def a_preprocess(text, token):
     text = token.texts_to_sequences(text)
-    text = pad_sequences(text,maxlen = 30)
+    text = pad_sequences(text,maxlen = 7)
     text = to_categorical(text, len(token.word_index.items())+1)
     (N, sequence,voc) = text.shape
     return text, N, sequence, voc
@@ -142,7 +192,7 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     # Extracting Training data and initializing some variables for the model
     x = q_corpus[0:2*k:2]  # extract every second item from the list
     t = a_corpus[1:2*k:2]
-    t = np.asarray(list(map(multiple_hot,t)))
+    #t = np.asarray(list(map(multiple_hot,t)))
     return x, imgs,t, N, sequence, voc, token
 
 def build_classifier(words, images, t, e,l1, voc, batch):
@@ -168,14 +218,15 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     # Autoencoder part. It uses its own auxiliary output for optimization.
     # It borrows the same textual input as the other LSTM layer, in addition
     # does it concatenate with the rest of the model.
-    encoder = LSTM(
+    encoder= LSTM( #   , state_h, state_c 
         l1,
         name='encoder'
         )(word_embedding)
     repeat_vector = RepeatVector(30)(encoder)
     decoder = LSTM(
         voc,
-        name='decoder'
+        name='decoder',
+        #inital_state = [state_h, state_c]
         )(repeat_vector)
         #This LSTM may need to be restructured. At the moment it outputs 6795x30... but i might need onehot
     autoencoder_output = Dense(
@@ -220,7 +271,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     print('Training...\n')
     classifier.fit(
         [words, images],
-        [t, words], 
+        [t, np.flip(words,axis=1)], 
         epochs = e, 
         batch_size = batch,
         validation_split = 0.1)
@@ -263,55 +314,12 @@ def answermatrix_to_text(token, x):
     print("------------------------------------")
     return seqs_to_words(x)
 
-def fuzzy_set_membership_measure(x,A,m):
-    """
-    Set membership measure.
-    x: element
-    A: set of elements
-    m: point-wise element-to-element measure m(a,b) ~ similarity(a,b)
 
-    This function implments a fuzzy set membership measure:
-        m(x \in A) = max_{a \in A} m(x,a)}
-    """
-    return 0 if A==[] else max(list(map(lambda a: m(x,a), A)))
-
-def score_it(A,T,m):
-    """
-    A: list of A items 
-    T: list of T items
-    m: set membership measure
-        m(a \in A) gives a membership quality of a into A 
-
-    This function implements a fuzzy accuracy score:
-        score(A,T) = min{prod_{a \in A} m(a \in T), prod_{t \in T} m(a \in A)}
-        where A and T are set representations of the answers
-        and m is a measure
-    """
-    if A==[] and T==[]:
-        return 1
-
-    # print A,T
-
-    score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
-    score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
-    return min(score_left,score_right) 
 
 def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     if (compute_wups):
-        questions = sequences_to_text(token, questions)
-        answers = answermatrix_to_text(token, answers.tolist())
-        predictions = matrix_to_text(token, predictions.tolist())
-        print('\nWUPS measure with threshold 0.9')
-        our_element_membership=lambda x,y: wup_measure(x,y)
-        our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
-        score_list=[score_it(answer,prediction,our_set_membership)
-                        for (answer,prediction) in zip(answers,predictions)]
-        final_score=float(sum(score_list))/float(len(score_list))
-        print(final_score)
-        questions = np.asarray(questions)[rand]
-        answers = np.asarray(answers)[rand]
-        predictions = np.asarray(predictions)[rand]
+    	questions, answers, predictions = compute_wups()
     else:
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
         answers = answermatrix_to_text(token, answers[rand].tolist())
