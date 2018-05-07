@@ -30,101 +30,100 @@ def load_cnn(filename):
     return images[:,1:]
 
 def compute_wups(questions,answers,predictions,token):
-	def wup_measure(a,b,similarity_threshold=0.9):
-		# Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
+    def wup_measure(a,b,similarity_threshold=0.9):
+        # Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
 
-		"""
-		Returns Wu-Palmer similarity score.
-		More specifically, it computes:
-		    max_{x \in interp(a)} max_{y \in interp(b)} wup(x,y)
-		    where interp is a 'interpretation field'
-		"""
-		def get_semantic_field(a):
-		    weight = 1.0
-		    semantic_field = wn.synsets(a,pos=wn.NOUN)
-		    return (semantic_field,weight)
-
-
-		def get_stem_word(a):
-		    """
-		    Sometimes answer has form word\d+:wordid.
-		    If so we return word and downweight
-		    """
-		    weight = 1.0
-		    return (a,weight)
+        """
+        Returns Wu-Palmer similarity score.
+        More specifically, it computes:
+            max_{x \in interp(a)} max_{y \in interp(b)} wup(x,y)
+            where interp is a 'interpretation field'
+        """
+        def get_semantic_field(a):
+            weight = 1.0
+            semantic_field = wn.synsets(a,pos=wn.NOUN)
+            return (semantic_field,weight)
 
 
-		global_weight=1.0
-
-		(a,global_weight_a)=get_stem_word(a)
-		(b,global_weight_b)=get_stem_word(b)
-		global_weight = min(global_weight_a,global_weight_b)
-
-		if a==b:
-		    # they are the same
-		    return 1.0*global_weight
-
-		if a==[] or b==[]:
-		    return 0
+        def get_stem_word(a):
+            """
+            Sometimes answer has form word\d+:wordid.
+            If so we return word and downweight
+            """
+            weight = 1.0
+            return (a,weight)
 
 
-		interp_a,weight_a = get_semantic_field(a) 
-		interp_b,weight_b = get_semantic_field(b)
+        global_weight=1.0
 
-		if interp_a == [] or interp_b == []:
-		    return 0
+        (a,global_weight_a)=get_stem_word(a)
+        (b,global_weight_b)=get_stem_word(b)
+        global_weight = min(global_weight_a,global_weight_b)
 
-		# we take the most optimistic interpretation
-		global_max=0.0
-		for x in interp_a:
-		    for y in interp_b:
-		        local_score=x.wup_similarity(y)
-		        if local_score > global_max:
-		            global_max=local_score
+        if a==b:
+            # they are the same
+            return 1.0*global_weight
 
-		# we need to use the semantic fields and therefore we downweight
-		# unless the score is high which indicates both are synonyms
-		if global_max < similarity_threshold:
-		    interp_weight = 0.1
-		else:
-		    interp_weight = 1.0
+        if a==[] or b==[]:
+            return 0
 
-		final_score=global_max*weight_a*weight_b*interp_weight*global_weight
-		return final_score 
 
-	def fuzzy_set_membership_measure(x,A,m):
-	    """
-	    Set membership measure.
-	    x: element
-	    A: set of elements
-	    m: point-wise element-to-element measure m(a,b) ~ similarity(a,b)
+        interp_a,weight_a = get_semantic_field(a) 
+        interp_b,weight_b = get_semantic_field(b)
 
-	    This function implments a fuzzy set membership measure:
-	        m(x \in A) = max_{a \in A} m(x,a)}
-	    """
-	    return 0 if A==[] else max(list(map(lambda a: m(x,a), A)))
+        if interp_a == [] or interp_b == []:
+            return 0
 
-	def score_it(A,T,m):
-	    """
-	    A: list of A items 
-	    T: list of T items
-	    m: set membership measure
-	        m(a \in A) gives a membership quality of a into A 
+        # we take the most optimistic interpretation
+        global_max=0.0
+        for x in interp_a:
+            for y in interp_b:
+                local_score=x.wup_similarity(y)
+                if local_score > global_max:
+                    global_max=local_score
 
-	    This function implements a fuzzy accuracy score:
-	        score(A,T) = min{prod_{a \in A} m(a \in T), prod_{t \in T} m(a \in A)}
-	        where A and T are set representations of the answers
-	        and m is a measure
-	    """
-	    if A==[] and T==[]:
-	        return 1
+        # we need to use the semantic fields and therefore we downweight
+        # unless the score is high which indicates both are synonyms
+        if global_max < similarity_threshold:
+            interp_weight = 0.1
+        else:
+            interp_weight = 1.0
 
-	    # print A,T
+        final_score=global_max*weight_a*weight_b*interp_weight*global_weight
+        return final_score 
 
-	    score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
-	    score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
-	    return min(score_left,score_right) 
+    def fuzzy_set_membership_measure(x,A,m):
+        """
+        Set membership measure.
+        x: element
+        A: set of elements
+        m: point-wise element-to-element measure m(a,b) ~ similarity(a,b)
 
+        This function implments a fuzzy set membership measure:
+            m(x \in A) = max_{a \in A} m(x,a)}
+        """
+        return 0 if A==[] else max(list(map(lambda a: m(x,a), A)))
+
+    def score_it(A,T,m):
+        """
+        A: list of A items 
+        T: list of T items
+        m: set membership measure
+            m(a \in A) gives a membership quality of a into A 
+
+        This function implements a fuzzy accuracy score:
+            score(A,T) = min{prod_{a \in A} m(a \in T), prod_{t \in T} m(a \in A)}
+            where A and T are set representations of the answers
+            and m is a measure
+        """
+        if A==[] and T==[]:
+            return 1
+
+        # print A,T
+
+        score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
+        score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
+        return min(score_left,score_right) 
     questions = sequences_to_text(token, questions)
     answers = answermatrix_to_text(token, answers.tolist())
     predictions = matrix_to_text(token, predictions.tolist())
@@ -218,15 +217,16 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     # Autoencoder part. It uses its own auxiliary output for optimization.
     # It borrows the same textual input as the other LSTM layer, in addition
     # does it concatenate with the rest of the model.
-    encoder= LSTM( #   , state_h, state_c 
+    encoder, state_h, state_c = LSTM(
         l1,
-        name='encoder'
+        name='encoder',
+        return_state = True
         )(word_embedding)
     repeat_vector = RepeatVector(30)(encoder)
     decoder = LSTM(
         voc,
         name='decoder',
-        #inital_state = [state_h, state_c]
+        inital_state = [state_h, state_c]
         )(repeat_vector)
         #This LSTM may need to be restructured. At the moment it outputs 6795x30... but i might need onehot
     autoencoder_output = Dense(
@@ -267,7 +267,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         metrics = ['categorical_accuracy'],
         loss_weights=[1., 1.])
     plot_model(classifier, to_file='classifier.png')
-    # Need to restructure t to onehot representation. we want it to be 6795x7x1790
+
     print('Training...\n')
     classifier.fit(
         [words, images],
@@ -317,7 +317,7 @@ def answermatrix_to_text(token, x):
 def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     if (compute_wups):
-    	questions, answers, predictions = compute_wups(questions,answers,predictions,token)
+        questions, answers, predictions = compute_wups(questions,answers,predictions,token)
     else:
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
         answers = answermatrix_to_text(token, answers[rand].tolist())
