@@ -197,7 +197,6 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
 
 def build_classifier(words, images, t, e,l1, voc, batch):
     print('Building model...\n')
-    print(words.shape)
     # Build text based input. embedding and LSTM layer
     # The Input layer is only there for convenience and doesn't do anything
     # The Embedding layer takes a 2D input (batch_size, sequence_length) and
@@ -218,9 +217,10 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     # Autoencoder part. It uses its own auxiliary output for optimization.
     # It borrows the same textual input as the other LSTM layer, in addition
     # does it concatenate with the rest of the model.
-    encoder= LSTM( #   , state_h, state_c 
+    encoder= LSTM( # , state_h, state_c 
         l1,
-        name='encoder'
+        name='encoder',
+        #return_state = True
         )(word_embedding)
     repeat_vector = RepeatVector(30)(encoder)
     decoder = LSTM(
@@ -266,8 +266,9 @@ def build_classifier(words, images, t, e,l1, voc, batch):
         optimizer = 'adam', 
         metrics = ['categorical_accuracy'],
         loss_weights=[1., 1.])
+
     # plot_model(classifier, to_file='classifier.png')
-    # Need to restructure t to onehot representation. we want it to be 6795x7x1790
+
     print('Training...\n')
     classifier.fit(
         [words, images],
