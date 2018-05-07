@@ -185,7 +185,7 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
         questions = corpus[0:2*k:2]
         imgs = match_img_features(questions,img_features)
     if token is None:
-        token = Tokenizer(oov_token='~')
+        token = Tokenizer(oov_token='~',filters='!"#$%&()*+,-./:;<=>?@[\]^`{|}~')
         token.fit_on_texts(corpus)
     q_corpus, N, sequence, voc = q_preprocess(corpus, token)
     a_corpus, _, _, _ = a_preprocess(corpus, token)
@@ -370,7 +370,7 @@ def main(argv=None):
     print('--ld1 Latent dimension 1: ' + str(ld1))
     print('--b Batch size: ' + str(batch))
 
-    qa_file_id = 'Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
+    qa_file_id = 'Enc_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")

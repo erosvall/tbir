@@ -135,7 +135,7 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
         questions = corpus[0:2*k:2]
         imgs = match_img_features(questions,img_features)
     if token is None:
-        token = Tokenizer(oov_token='~')
+        token = Tokenizer(oov_token='~',filters='!"#$%&()*+,-./:;<=>?@[\]^`{|}~')
         token.fit_on_texts(corpus)
     q_corpus, N, sequence, voc = q_preprocess(corpus, token)
     a_corpus, _, _, _ = a_preprocess(corpus, token)
@@ -194,7 +194,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     word_encoding = LSTM(
         l1)(word_embedding) 
 
-    if True:
+    if False:
         autoencoder = build_autoencoder(voc,l1,words,e,batch)
         # encoder = LSTM(l1)(word_embedding)
         encoder = autoencoder.layers[2](word_embedding)
@@ -209,7 +209,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
 
 
     # We merge the model, add a dropout to combat some overfitting and fit.
-    merged = concatenate([word_encoding,visual_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
+    merged = concatenate([word_encoding,visual_encoding])#, encoder]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
     # repeat_vector = RepeatVector(7)(dropout)
@@ -217,7 +217,7 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'Output_layer')(Dropout)
+        name = 'Output_layer')(dropout)
     classifier = Model(
         inputs = [word_input,visual_input], 
         outputs = output)
