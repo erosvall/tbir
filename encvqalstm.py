@@ -29,69 +29,69 @@ def load_cnn(filename):
     images = images[images[:,0].argsort()]
     return images[:,1:]
 
-def compute_wups(token,):
+def compute_wups(questions,answers,predictions,token):
 	def wup_measure(a,b,similarity_threshold=0.9):
-    # Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
+		# Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
 
-    """
-    Returns Wu-Palmer similarity score.
-    More specifically, it computes:
-        max_{x \in interp(a)} max_{y \in interp(b)} wup(x,y)
-        where interp is a 'interpretation field'
-    """
-    def get_semantic_field(a):
-        weight = 1.0
-        semantic_field = wn.synsets(a,pos=wn.NOUN)
-        return (semantic_field,weight)
-
-
-    def get_stem_word(a):
-        """
-        Sometimes answer has form word\d+:wordid.
-        If so we return word and downweight
-        """
-        weight = 1.0
-        return (a,weight)
+		"""
+		Returns Wu-Palmer similarity score.
+		More specifically, it computes:
+		    max_{x \in interp(a)} max_{y \in interp(b)} wup(x,y)
+		    where interp is a 'interpretation field'
+		"""
+		def get_semantic_field(a):
+		    weight = 1.0
+		    semantic_field = wn.synsets(a,pos=wn.NOUN)
+		    return (semantic_field,weight)
 
 
-    global_weight=1.0
-
-    (a,global_weight_a)=get_stem_word(a)
-    (b,global_weight_b)=get_stem_word(b)
-    global_weight = min(global_weight_a,global_weight_b)
-
-    if a==b:
-        # they are the same
-        return 1.0*global_weight
-
-    if a==[] or b==[]:
-        return 0
+		def get_stem_word(a):
+		    """
+		    Sometimes answer has form word\d+:wordid.
+		    If so we return word and downweight
+		    """
+		    weight = 1.0
+		    return (a,weight)
 
 
-    interp_a,weight_a = get_semantic_field(a) 
-    interp_b,weight_b = get_semantic_field(b)
+		global_weight=1.0
 
-    if interp_a == [] or interp_b == []:
-        return 0
+		(a,global_weight_a)=get_stem_word(a)
+		(b,global_weight_b)=get_stem_word(b)
+		global_weight = min(global_weight_a,global_weight_b)
 
-    # we take the most optimistic interpretation
-    global_max=0.0
-    for x in interp_a:
-        for y in interp_b:
-            local_score=x.wup_similarity(y)
-            if local_score > global_max:
-                global_max=local_score
+		if a==b:
+		    # they are the same
+		    return 1.0*global_weight
 
-    # we need to use the semantic fields and therefore we downweight
-    # unless the score is high which indicates both are synonyms
-    if global_max < similarity_threshold:
-        interp_weight = 0.1
-    else:
-        interp_weight = 1.0
+		if a==[] or b==[]:
+		    return 0
 
-    final_score=global_max*weight_a*weight_b*interp_weight*global_weight
-    return final_score 
-    
+
+		interp_a,weight_a = get_semantic_field(a) 
+		interp_b,weight_b = get_semantic_field(b)
+
+		if interp_a == [] or interp_b == []:
+		    return 0
+
+		# we take the most optimistic interpretation
+		global_max=0.0
+		for x in interp_a:
+		    for y in interp_b:
+		        local_score=x.wup_similarity(y)
+		        if local_score > global_max:
+		            global_max=local_score
+
+		# we need to use the semantic fields and therefore we downweight
+		# unless the score is high which indicates both are synonyms
+		if global_max < similarity_threshold:
+		    interp_weight = 0.1
+		else:
+		    interp_weight = 1.0
+
+		final_score=global_max*weight_a*weight_b*interp_weight*global_weight
+		return final_score 
+
 	def fuzzy_set_membership_measure(x,A,m):
 	    """
 	    Set membership measure.
@@ -124,22 +124,22 @@ def compute_wups(token,):
 	    score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
 	    score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
 	    return min(score_left,score_right) 
-        questions = sequences_to_text(token, questions)
-        answers = answermatrix_to_text(token, answers.tolist())
-        predictions = matrix_to_text(token, predictions.tolist())
-        print('\nWUPS measure with threshold 0.9')
-        our_element_membership=lambda x,y: wup_measure(x,y)
-        our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
-        score_list=[score_it(answer,prediction,our_set_membership)
-                        for (answer,prediction) in zip(answers,predictions)]
-        final_score=float(sum(score_list))/float(len(score_list))
-        print(final_score)
-        questions = np.asarray(questions)[rand]
-        answers = np.asarray(answers)[rand]
-        predictions = np.asarray(predictions)[rand]
 
+    questions = sequences_to_text(token, questions)
+    answers = answermatrix_to_text(token, answers.tolist())
+    predictions = matrix_to_text(token, predictions.tolist())
+    print('\nWUPS measure with threshold 0.9')
+    our_element_membership=lambda x,y: wup_measure(x,y)
+    our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
+    score_list=[score_it(answer,prediction,our_set_membership)
+                    for (answer,prediction) in zip(answers,predictions)]
+    final_score=float(sum(score_list))/float(len(score_list))
+    print(final_score)
+    questions = np.asarray(questions)[rand]
+    answers = np.asarray(answers)[rand]
+    predictions = np.asarray(predictions)[rand]
 
-
+    return questions,answers,predictions
 
 def match_img_features(questions,img_features):
     return np.asarray(list(map(lambda x: 
@@ -314,12 +314,10 @@ def answermatrix_to_text(token, x):
     print("------------------------------------")
     return seqs_to_words(x)
 
-
-
 def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     if (compute_wups):
-    	questions, answers, predictions = compute_wups()
+    	questions, answers, predictions = compute_wups(questions,answers,predictions,token)
     else:
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
         answers = answermatrix_to_text(token, answers[rand].tolist())
