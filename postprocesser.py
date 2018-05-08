@@ -185,8 +185,20 @@ def answermatrix_to_text(token, x):
     # return seqs_to_words(x)
     return y
 
-def print_compare(questions,answers,predictions,N,token,compute_wups):
+def print_auto(questions,qpredictions,N,token):
+    rand = np.random.choice(4000, N)
+    print('Converting questions')
+    questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
+    print('Converting predicted questions')
+    qpredictions = catsequences_to_text(token,np.asarray(qpredictions)[rand].tolist())
+    print('\n')
+    for i in range(0,N):
+        print(str(i)+'. '+questions[i])
+    print('\n')
+    for i in range(0,N):
+        print(str(i)+'. '+qpredictions[i])
 
+def print_compare(questions,answers,predictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     if (compute_wups):
         print('Converting Questions')

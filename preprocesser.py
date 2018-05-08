@@ -16,6 +16,7 @@ import argparse
 import sys
 import time
 
+
 def load_cnn(filename):
     # Returns a matrix where each row corresponds to imageXXXX, 
     # note that index determines image number
@@ -32,15 +33,12 @@ def match_img_features(questions,img_features):
                 img_features[int(x.split('image')[-1].split(' ')[0])-1],
                 questions)))
                 
-def preprocess(text, token):
+def preprocess(text, token, maxlen):
     text = token.texts_to_sequences(text)
-    text = pad_sequences(
-        text,
-        maxlen = 30)
-    # text = to_categorical(text, len(token.word_index.items())+1)
-    (N, sequence) = text.shape
-    voc = len(token.word_index.items())+1
-    return text, N, sequence, voc
+    text = pad_sequences(text,maxlen=maxlen,padding='post')
+    cat_text = to_categorical(text, len(token.word_index.items())+1)
+    (N, sequence, voc) = cat_text.shape
+    return text, cat_text, N, sequence, voc
 
 def q_preprocess(text, token):  
     text = token.texts_to_sequences(text)
@@ -74,10 +72,12 @@ def load_dataset(filename, k=0, token=None,img_filename=None):
     if token is None:
         token = Tokenizer(oov_token='~')#,filters='!"#$%&()*+,-./:;<=>?@[\]^`{|}~')
         token.fit_on_texts(corpus)
-    q_corpus, N, sequence, voc = q_preprocess(corpus, token)
-    a_corpus, _, _, _, pre_cat_a_corpus = a_preprocess(corpus, token)
+    q_corpus,q_cat_corpus, N, sequence, voc = preprocess(corpus, token, 30)
+    a_corpus,a_cat_corpus, _, _, _ = preprocess(corpus, token, 11)
     # Extracting Training data and initializing some variables for the model
     x = q_corpus[0:2*k:2]  # extract every second item from the list
     t = a_corpus[1:2*k:2]
+    x_cat = q_cat_corpus[0:2*k:2]  # extract every second item from the list
+    t_cat = a_cat_corpus[1:2*k:2]
     #t = np.asarray(list(map(multiple_hot,t)))
-    return x, imgs,t, N, sequence, voc, token
+    return x,x_cat,imgs,t,t_cat, N, sequence, voc, token

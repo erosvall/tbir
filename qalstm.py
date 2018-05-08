@@ -20,7 +20,7 @@ import sys
 import preprocesser as prep
 import postprocesser as postp
 
-def build_text_classifier(words, t, e,l1, voc, batch):
+def build_text_classifier(x,x_cat, t_cat, e,l1, voc, batch):
     print('Building model...\n')
     # Build text based input. embedding and LSTM layer
     # The Input layer is only there for convenience and doesn't do anything
@@ -50,13 +50,14 @@ def build_text_classifier(words, t, e,l1, voc, batch):
     repeat_vector = RepeatVector(30)(encoder)
     decoder= LSTM(
         voc,
+        return_sequences = True,
         name='decoder',
         go_backwards = True
         )(repeat_vector)# , initial_state = [ h_state, c_state ]
     autoencoder_output = Dense(
-        30,
+        voc,
         activation = 'softmax',
-        name = 'Autoencoder_output'
+        name = 'AE_out'
         )(decoder)
 
 
@@ -74,7 +75,7 @@ def build_text_classifier(words, t, e,l1, voc, batch):
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'Output_layer')(answer_layer)
+        name = 'out')(answer_layer)
     classifier = Model(
         inputs = word_input, 
         outputs = [output, autoencoder_output])
@@ -88,8 +89,8 @@ def build_text_classifier(words, t, e,l1, voc, batch):
 
     print('Training...\n')
     classifier.fit(
-        words,
-        [t, np.flip(words,axis=1)], 
+        x,
+        [t_cat, x_cat], 
         epochs = e, 
         batch_size = batch,
         validation_split = 0.1)
@@ -106,7 +107,7 @@ def main(argv=None):
     argparser.add_argument('--ld1', type=int,   
                            help='Latent dimension 1, default 512')
     argparser.add_argument('--b', type=int,
-                           help='Batch size, default 32')
+                           help='Batch size, default 256')
     argparser.add_argument('--wups', action="store_true",
                            help='Compute the WUPS Score')
     args = argparser.parse_args(argv)
@@ -115,7 +116,7 @@ def main(argv=None):
     # Hyper Parameters
     ld1 = 512
     epochs = 1
-    batch = 32
+    batch = 256
 
     if args.ld1:
         ld1 = args.ld1
@@ -131,8 +132,8 @@ def main(argv=None):
     qa_file_id = 'Text_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
-    train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
-    test_x, test_imgs, test_t, test_N, test_sequence, _, _ = prep.load_dataset("qa.894.raw.test.txt", 6795 , train_token, img_filename="img_features.csv")
+    train_x,train_x_cat, train_imgs, train_t, train_t_cat,train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
+    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset("qa.894.raw.test.txt", 6795 , train_token, img_filename="img_features.csv")
 
 
     # Build and train Question Answerer
@@ -144,22 +145,22 @@ def main(argv=None):
         classifier = load_model(qa_file_id)
     else:
         print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_text_classifier(train_x, train_t, epochs, ld1, voc, batch)
+        classifier = build_text_classifier(train_x,train_x_cat, train_t_cat, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
     
 
     print('\nEvaluating question answerer on test data')
-    qa_result = classifier.evaluate(test_x, [test_t, np.flip(test_x,axis = 1)], batch_size = batch)
+    qa_result = classifier.evaluate(test_x, [test_t_cat, test_x_cat], batch_size = batch)
     [qa_answer,qa_question] = classifier.predict(test_x, batch_size = batch)
     print(qa_answer.shape)
     print(qa_question.shape)
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
-    postp.print_compare(test_x,test_t,qa_answer,20,train_token,args.wups)
-
+    postp.print_compare(test_x,test_t_cat,qa_answer,20,train_token,args.wups)
+    postp.print_auto(test_x,qa_question,20,train_token)
 
 if __name__ == "__main__":
     sys.exit(main())
