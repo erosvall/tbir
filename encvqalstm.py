@@ -226,7 +226,8 @@ def build_classifier(words, images, t, e,l1, voc, batch):
     repeat_vector = RepeatVector(30)(encoder)
     decoder= LSTM(
         voc,
-        name='decoder'
+        name='decoder',
+        go_backwards = True
         )(repeat_vector)
     autoencoder_output = Dense(
         30,
@@ -538,7 +539,7 @@ def main(argv=None):
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x, train_imgs, train_t, train_N, train_sequence, voc, train_token = load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
-    test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795, train_token, img_filename="img_features.csv")
+    test_x, test_imgs, test_t, test_N, test_sequence, _, _ = load_dataset("qa.894.raw.test.txt", 6795 , train_token, img_filename="img_features.csv")
 
 
     # Build and train Question Answerer
