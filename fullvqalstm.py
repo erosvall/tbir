@@ -83,7 +83,7 @@ def build_classifier(x, x_cat, images, t_cat, e,l1, voc, batch):
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'Output_layer')(answer_layer)
+        name = 'out')(answer_layer)
     classifier = Model(
         inputs = [word_input, visual_input], 
         outputs = [output, autoencoder_output])
@@ -115,7 +115,7 @@ def main(argv=None):
     argparser.add_argument('--ld1', type=int,   
                            help='Latent dimension 1, default 512')
     argparser.add_argument('--b', type=int,
-                           help='Batch size, default 32')
+                           help='Batch size, default 64')
     argparser.add_argument('--wups', action="store_true",
                            help='Compute the WUPS Score')
     args = argparser.parse_args(argv)
@@ -124,7 +124,7 @@ def main(argv=None):
     # Hyper Parameters
     ld1 = 512
     epochs = 1
-    batch = 32
+    batch = 64
 
     if args.ld1:
         ld1 = args.ld1
@@ -153,7 +153,7 @@ def main(argv=None):
         classifier = load_model(qa_file_id)
     else:
         print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_classifier1(train_x, train_x_cat, train_imgs, train_t_cat, epochs, ld1, voc, batch)
+        classifier = build_classifier(train_x, train_x_cat, train_imgs, train_t_cat, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
@@ -165,8 +165,7 @@ def main(argv=None):
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
-    postp.print_compare(test_x,test_t_cat,qa_answer,100,train_token,args.wups)
-    postp.print_auto(test_x,qa_question,20,train_token)
+    postp.print_compare(test_x,test_t,qa_answer,qa_question,50,train_token,args.wups)
 
 if __name__ == "__main__":
     sys.exit(main())

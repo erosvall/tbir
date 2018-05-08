@@ -125,6 +125,20 @@ def sequences_to_text(token, x):
         sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
     return sentence_list
 
+def sequences_to_matrix(token, x):
+    print('Converting to text...')
+    reverse_word_dict = dict(map(reversed, token.word_index.items()))
+    InteractiveSession()
+    from_categorical = lambda y: argmax(y, axis=-1).eval()
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
+    # words_to_sentence = lambda y: ' '.join(filter(None, y))
+    # word_matrix = list(map(seqs_to_words, x))
+    # sentence_list = list(map(words_to_sentence, word_matrix))
+    word_matrix = list()
+    for i in tqdm(range(len(x))):
+        word_matrix.append(seqs_to_words(x[i]))
+    return word_matrix  
+
 def catsequences_to_matrix(token, x):
     print('Converting to text...')
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
@@ -198,13 +212,13 @@ def print_auto(questions,qpredictions,N,token):
     for i in range(0,N):
         print(str(i)+'. '+qpredictions[i])
 
-def print_compare(questions,answers,predictions,N,token,compute_wups):
+def print_compare(questions,answers,predictions,qpredictions,N,token,compute_wups):
     rand = np.random.choice(4000, N)
     if (compute_wups):
         print('Converting Questions')
         questions = sequences_to_text(token,np.asarray(questions).tolist())
         print('Converting Answers')
-        answers = catsequences_to_text(token, answers.tolist())
+        answers = sequences_to_text(token, answers.tolist())
         print('Converting Predictions')
         predictions = catsequences_to_text(token, predictions.tolist())
         print('\nWUPS measure with threshold 0.9')
@@ -223,21 +237,38 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     else:
         print('Converting questions')
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
+        if not qpredictions is None:
+            print('Converting predicted questions')
+            qpredictions = catsequences_to_text(token,np.asarray(qpredictions)[rand].tolist())
         print('Converting answers')
-        answers = catsequences_to_matrix(token, answers[rand].tolist())
-        print('Converting predictions')
+        answers = sequences_to_matrix(token, answers[rand].tolist())
+        print('Converting predicted answers')
         predictions = catsequences_to_matrix(token, predictions[rand].tolist())
 
+    if not qpredictions is None:
+        maxq = max(list(map(len,questions)))
+        maxqp = max(list(map(len,qpredictions)))
     print('\n')
     for i in range(0,N):
-        print(str(i)+'. '+questions[i])
+        if qpredictions is None:
+            print(str(i)+'. '+questions[i])
+        else:
+            nb_words = len(questions[i].split(' '))
+            nb_qwords = len(qpredictions[i].split(' '))
+            nb_right = 0
+            for j in range(min(nb_words,nb_qwords)):
+                if questions[i].split(' ')[j] == qpredictions[i].split(' ')[j]:
+                    nb_right += 1
+            start = ' ' if i < 10 else ''
+            correct = '+++ ' if nb_words == nb_right+1 else '--- '
+            print(start + str(i)+'. '
+                + ('{:'+str(maxq)+'} ').format(questions[i])
+                + correct 
+                + ('{:'+str(maxqp)+'} ').format(qpredictions[i])
+                + str(nb_right)
+                + '/'
+                + str(nb_words))
     print('\n')
-    # for i in range(0,N):
-    #     start = ' ' if i < 10 else ''
-    #     print(start + str(i)+'. ' 
-    #         + answers[i]
-    #         + ' --- '
-    #         + predictions[i])
 
     acc1_num = 0
     acc1_denom = 0
