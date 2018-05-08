@@ -13,10 +13,12 @@ from keras.callbacks import ModelCheckpoint
 from tensorflow import InteractiveSession
 from keras import regularizers
 from nltk.corpus import wordnet as wn
+from tqdm import tqdm
 import numpy as np
 import os.path
 import argparse
 import sys
+import time
 
 def load_cnn(filename):
     # Returns a matrix where each row corresponds to imageXXXX, 
@@ -345,8 +347,11 @@ def sequences_to_text(token, x):
     from_categorical = lambda y: argmax(y, axis=-1).eval()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
     words_to_sentence = lambda y: ' '.join(filter(None, y))
-    word_matrix = list(map(seqs_to_words, x))
-    sentence_list = list(map(words_to_sentence, word_matrix))
+    # word_matrix = list(map(seqs_to_words, x))
+    # sentence_list = list(map(words_to_sentence, word_matrix))
+    sentence_list = list()
+    for i in tqdm(range(len(x))):
+        sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
     return sentence_list
 
 def catsequences_to_matrix(token, x):
@@ -355,10 +360,13 @@ def catsequences_to_matrix(token, x):
     InteractiveSession()
     from_categorical = lambda y: argmax(y, axis=-1).eval()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
-    words_to_sentence = lambda y: ' '.join(filter(None, y))
-    word_matrix = list(map(seqs_to_words, x))
-    sentence_list = list(map(words_to_sentence, word_matrix))
-    return word_matrix # list(map(lambda x: x[::-1],word_matrix)) 
+    # words_to_sentence = lambda y: ' '.join(filter(None, y))
+    # word_matrix = list(map(seqs_to_words, x))
+    # sentence_list = list(map(words_to_sentence, word_matrix))
+    word_matrix = list()
+    for i in tqdm(range(len(x))):
+        word_matrix.append(seqs_to_words(x[i]))
+    return word_matrix  
 
 def catsequences_to_text(token, x):
     print('Converting to text...')
@@ -367,8 +375,11 @@ def catsequences_to_text(token, x):
     from_categorical = lambda y: argmax(y, axis=-1).eval()
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
     words_to_sentence = lambda y: ' '.join(filter(None, y))
-    word_matrix = list(map(seqs_to_words, x))
-    sentence_list = list(map(words_to_sentence, word_matrix))
+    # word_matrix = list(map(seqs_to_words, x))
+    # sentence_list = list(map(words_to_sentence, word_matrix))
+    sentence_list = list()
+    for i in tqdm(range(len(x))):
+        sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
     return sentence_list
 
 def sequence_to_text(token, x):
@@ -404,21 +415,20 @@ def answermatrix_to_text(token, x):
     return y
 
 def print_compare(questions,answers,predictions,N,token,compute_wups):
+
     rand = np.random.choice(4000, N)
     if (compute_wups):
         print('Converting Questions')
-        questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
+        questions = sequences_to_text(token,np.asarray(questions).tolist())
         print('Converting Answers')
-        answers = catsequences_to_text(token, answers[rand].tolist())
+        answers = catsequences_to_text(token, answers.tolist())
         print('Converting Predictions')
-        predictions = catsequences_to_text(token, predictions[rand].tolist())
+        predictions = catsequences_to_text(token, predictions.tolist())
         print('\nWUPS measure with threshold 0.9')
         our_element_membership=lambda x,y: wup_measure(x,y)
         our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
         score_list = list()
-        for i in range(0,len(answers)):
-            if i%50 == 0:
-                print('scoring... ' + str(i))
+        for i in tqdm(range(0,len(answers))):
             score_list.append(score_it(answers[i],predictions[i],our_set_membership))
         # score_list=[score_it(answer,prediction,our_set_membership)
         #                 for (answer,prediction) in zip(answers,predictions)]
@@ -428,9 +438,13 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
         # answers = np.asarray(answers)[rand]
         # predictions = np.asarray(predictions)[rand]
     else:
+        print('Converting questions')
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
+        print('Converting answers')
         answers = catsequences_to_matrix(token, answers[rand].tolist())
+        print('Converting predictions')
         predictions = catsequences_to_matrix(token, predictions[rand].tolist())
+
     print('\n')
     for i in range(0,N):
         print(str(i)+'. '+questions[i])
@@ -442,6 +456,21 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
     #         + ' --- '
     #         + predictions[i])
 
+    acc1_num = 0
+    acc1_denom = 0
+    acc2_num = 0
+    acc2_denom = 0
+    for i in range(0,len(answers)):
+        nb_answers = len(set(filter(lambda x: not x is None,answers[i])))
+        nb_right = len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i]))
+        acc1_num += nb_right/nb_answers
+        acc1_denom += 1
+        acc2_num += nb_right
+        acc2_denom += nb_answers
+    acc1 = acc1_num/acc1_denom
+    acc2 = acc2_num/acc2_denom
+    print('Accuracy1: ' + str(acc1_num) + '/' + str(acc1_denom) + ' = ' + str(acc1))
+    print('Accuracy2: ' + str(acc2_num) + '/' + str(acc2_denom) + ' = ' + str(acc2))
 
     maxa = list(map(lambda x: 0 if x is None else len(x),answers[0]))
     maxp = list(map(lambda x: 0 if x is None else len(x),predictions[0]))
@@ -459,14 +488,19 @@ def print_compare(questions,answers,predictions,N,token,compute_wups):
         if maxp[i] > 0:
             formatp += '{:'+str(maxp[i])+'} '
     for i in range(0,N):
+        nb_answers = len(set(filter(lambda x: not x is None,answers[i])))
+        nb_right = len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i]))
         start = ' ' if i < 10 else ''
-        correct = ' +++ ' if len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i])) > 0 else ' --- '
+        correct = ' +++ ' if nb_right > 0 else ' --- '
         answerlist = list(map(lambda x: "" if x is None else x,answers[i]))
         predictionlist = list(map(lambda x: "" if x is None else x,predictions[i]))
         print(start + str(i) + '. '
              + formata.format(*answerlist)
              + correct
-             + formatp.format(*predictionlist))
+             + formatp.format(*predictionlist)
+             + str(nb_right)
+             + '/'
+             + str(nb_answers))
 
 def main(argv=None):
     # EXAMPLES
