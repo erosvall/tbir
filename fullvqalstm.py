@@ -22,7 +22,6 @@ import argparse
 import sys
 import time
 
-
 def build_classifier(x, x_cat, images, t_cat, e,l1, voc, batch):
     print('Building model...\n')
     # Build text based input. embedding and LSTM layer
@@ -42,7 +41,27 @@ def build_classifier(x, x_cat, images, t_cat, e,l1, voc, batch):
         l1,
         name = 'Text_features'
         )(word_embedding) 
-    
+    # Autoencoder part. It uses its own auxiliary output for optimization.
+    # It borrows the same textual input as the other LSTM layer, in addition
+    # does it concatenate with the rest of the model.
+    encoder= LSTM(
+        l1,
+        name='encoder'
+        )(word_embedding)
+    repeat_vector = RepeatVector(30)(encoder)
+    decoder= LSTM(
+        voc,
+        return_sequences = True,
+        name='decoder',
+        go_backwards = True
+        )(repeat_vector)
+    autoencoder_output = Dense(
+        voc,
+        activation = 'softmax',
+        name = 'AE_out'
+        )(decoder)
+
+
     # Construtct the Image input part. Since no feature extraction 
     # takes place we basically just run ahead here
     visual_input = Input(shape=(images.shape[1],),name='Image_input')
@@ -51,7 +70,7 @@ def build_classifier(x, x_cat, images, t_cat, e,l1, voc, batch):
 
 
     # We merge the model, add a dropout to combat some overfitting and fit.
-    merged = concatenate([word_encoding,visual_encoding]) # Concatenate an Autoencoder hidden layer here
+    merged = concatenate([word_encoding,visual_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
     repeat_vector = RepeatVector(11)(dropout)
@@ -64,22 +83,22 @@ def build_classifier(x, x_cat, images, t_cat, e,l1, voc, batch):
     output = Dense(
         voc,
         activation = 'softmax',
-        name = 'out')(answer_layer)
+        name = 'Output_layer')(answer_layer)
     classifier = Model(
         inputs = [word_input, visual_input], 
-        outputs = [output])
+        outputs = [output, autoencoder_output])
     classifier.compile(
         loss = 'categorical_crossentropy', 
         optimizer = 'adam', 
         metrics = ['categorical_accuracy'],
-        )
+        loss_weights=[1., 1.])
 
-    # plot_model(classifier, to_file='classifier.png')
+    # plot_model(classifier, to_file='classifier_w_autoencoder.png')
 
     print('Training...\n')
     classifier.fit(
         [x, images],
-        t_cat, 
+        [t_cat, x_cat], 
         epochs = e, 
         batch_size = batch,
         validation_split = 0.1)
@@ -118,7 +137,7 @@ def main(argv=None):
     print('--ld1 Latent dimension 1: ' + str(ld1))
     print('--b Batch size: ' + str(batch))
 
-    qa_file_id = 'Enc_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
+    qa_file_id = 'Full_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x,train_x_cat, train_imgs, train_t, train_t_cat,train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
@@ -134,20 +153,20 @@ def main(argv=None):
         classifier = load_model(qa_file_id)
     else:
         print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_classifier(train_x, train_x_cat, train_imgs, train_t_cat, epochs, ld1, voc, batch)
+        classifier = build_classifier1(train_x, train_x_cat, train_imgs, train_t_cat, epochs, ld1, voc, batch)
         classifier.save(qa_file_id)
         print('\nModel saved to: ' + qa_file_id)
 
     
 
     print('\nEvaluating question answerer on test data')
-    qa_result = classifier.evaluate([test_x,test_imgs], test_t_cat, batch_size = batch)
-    qa_answer = classifier.predict([test_x,test_imgs], batch_size = batch)
+    qa_result = classifier.evaluate([test_x,test_imgs], [test_t_cat,test_x_cat], batch_size = batch)
+    [qa_answer,qa_question] = classifier.predict([test_x,test_imgs], batch_size = batch)
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
     postp.print_compare(test_x,test_t_cat,qa_answer,100,train_token,args.wups)
-
+    postp.print_auto(test_x,qa_question,20,train_token)
 
 if __name__ == "__main__":
     sys.exit(main())
