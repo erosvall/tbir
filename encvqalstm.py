@@ -85,6 +85,35 @@ def build_classifier(x, x_cat, images, t_cat, e,l1, voc, batch):
         validation_split = 0.1)
     return classifier
 
+def model(epochs,ld1,batch,qa):
+    qa_file_id = 'Enc_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
+
+    # This function fetches the dataset from the file and fills both X and T with k number of datapoints
+    train_x,train_x_cat, train_imgs, train_t, train_t_cat,train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
+    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset("qa.894.raw.test.txt", 6795 , train_token, img_filename="img_features.csv")
+
+
+    # Build and train Question Answerer
+    if qa:
+        print('\nLoading Question Answerer model from file: ' + qa + ' \n')
+        classifier = load_model(qa)
+    elif os.path.exists(qa_file_id):
+        print('\nQuestion Answerer model with these parameters found, loading model from file: ' + qa_file_id + '\n')
+        classifier = load_model(qa_file_id)
+    else:
+        print('\nNo question answerer model with these parameters was found, building new model.\n')
+        classifier = build_classifier(train_x, train_x_cat, train_imgs, train_t_cat, epochs, ld1, voc, batch)
+        classifier.save(qa_file_id)
+        print('\nModel saved to: ' + qa_file_id)
+
+    print('\nEvaluating question answerer on test data')
+    qa_result = classifier.evaluate([test_x,test_imgs], test_t_cat, batch_size = batch)
+    qa_answer = classifier.predict([test_x,test_imgs], batch_size = batch)
+    print('Loss: ' + str(qa_result[0]))
+    print('Accuracy: ' + str(qa_result[1]))
+
+    return test_x,test_t,qa_answer,train_token
+
 def main(argv=None):
     # EXAMPLES
     argparser = argparse.ArgumentParser(description='A visual question answerer.')
@@ -118,35 +147,9 @@ def main(argv=None):
     print('--ld1 Latent dimension 1: ' + str(ld1))
     print('--b Batch size: ' + str(batch))
 
-    qa_file_id = 'Enc_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
+    test_x, test_t, qa_answer, train_token = model(epochs,ld1,batch,args.qa)
 
-    # This function fetches the dataset from the file and fills both X and T with k number of datapoints
-    train_x,train_x_cat, train_imgs, train_t, train_t_cat,train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
-    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset("qa.894.raw.test.txt", 6795 , train_token, img_filename="img_features.csv")
-
-
-    # Build and train Question Answerer
-    if args.qa:
-        print('\nLoading Question Answerer model from file: ' + args.qa + ' \n')
-        classifier = load_model(args.qa)
-    elif os.path.exists(qa_file_id):
-        print('\nQuestion Answerer model with these parameters found, loading model from file: ' + qa_file_id + '\n')
-        classifier = load_model(qa_file_id)
-    else:
-        print('\nNo question answerer model with these parameters was found, building new model.\n')
-        classifier = build_classifier(train_x, train_x_cat, train_imgs, train_t_cat, epochs, ld1, voc, batch)
-        classifier.save(qa_file_id)
-        print('\nModel saved to: ' + qa_file_id)
-
-    
-
-    print('\nEvaluating question answerer on test data')
-    qa_result = classifier.evaluate([test_x,test_imgs], test_t_cat, batch_size = batch)
-    qa_answer = classifier.predict([test_x,test_imgs], batch_size = batch)
-    print('Loss: ' + str(qa_result[0]))
-    print('Accuracy: ' + str(qa_result[1]))
-
-    postp.print_compare(test_x,test_t_cat,qa_answer,100,train_token,args.wups)
+    postp.print_compare(test_x,test_t,qa_answer,None,5000,train_token,args.wups)
 
 
 if __name__ == "__main__":
