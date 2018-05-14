@@ -27,27 +27,7 @@ def build_model(l1, voc, img_dim):
         l1,
         name = 'Text_features'
         )(word_embedding) 
-    # Autoencoder part. It uses its own auxiliary output for optimization.
-    # It borrows the same textual input as the other LSTM layer, in addition
-    # does it concatenate with the rest of the model.
-    encoder= LSTM(
-        l1,
-        name='encoder'
-        )(word_embedding)
-    repeat_vector = RepeatVector(30)(encoder)
-    decoder= LSTM(
-        voc,
-        return_sequences = True,
-        name='decoder',
-        go_backwards = True
-        )(repeat_vector)
-    autoencoder_output = Dense(
-        voc,
-        activation = 'softmax',
-        name = 'AE_out'
-        )(decoder)
-
-
+    
     # Construtct the Image input part. Since no feature extraction 
     # takes place we basically just run ahead here
     visual_input = Input(shape=(img_dim,),name='Image_input')
@@ -56,7 +36,7 @@ def build_model(l1, voc, img_dim):
 
 
     # We merge the model, add a dropout to combat some overfitting and fit.
-    merged = concatenate([word_encoding,visual_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
+    merged = concatenate([word_encoding,visual_encoding]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
     dropout = Dropout(0.5)(merged)
     repeat_vector = RepeatVector(11)(dropout)
@@ -72,22 +52,22 @@ def build_model(l1, voc, img_dim):
         name = 'out')(answer_layer)
     model = Model(
         inputs = [word_input, visual_input], 
-        outputs = [output, autoencoder_output])
+        outputs = [output])
     model.compile(
         loss = 'categorical_crossentropy', 
         optimizer = 'adam', 
         metrics = ['categorical_accuracy'],
-        loss_weights=[1., 1.])
+        )
 
-    # plot_model(model, to_file='model_w_autoencoder.png')
+    # plot_model(model, to_file='model.png')
     return model
 
-def train_model(model,x,images,x_cat,t_cat,e,batch,l1):
+def train_model(model,x,images,t_cat,e,batch,l1):
     print('Training...\n')
-    checkpoint = ModelCheckpoint('FVQA_e{epoch:02d}-l{loss:.3f}-cl{out_loss:.3f}-ael{AE_out_loss:.3f}-cac{out_categorical_accuracy:.3f}-aeac{AE_out_categorical_accuracy:.3f}-vl{val_loss:.3f}-vcl{val_out_loss:.3f}-vael{val_AE_out_loss:.3f}-vcac{val_out_categorical_accuracy:.3f}-vaeac{val_AE_out_categorical_accuracy:.3f}_' + str(l1) + '.h5', monitor='val_loss',save_best_only=False)
+    checkpoint = ModelCheckpoint('VQA_e{epoch:02d}-l{loss:.3f}-acc{categorical_accuracy:.3f}-vl{val_loss:.3f}-vacc{val_categorical_accuracy:.3f}_' + str(l1) + '.h5', monitor='val_loss',save_best_only=False)
     model.fit(
         [x, images],
-        [t_cat, x_cat], 
+        t_cat, 
         epochs = e, 
         batch_size = batch,
         callbacks=[checkpoint],

@@ -1,0 +1,386 @@
+D:\svenh\Documents\GitHub\tbir>test
+
+D:\svenh\Documents\GitHub\tbir>py vqa.py --e 100 --wups
+D:\Program Files HDD\Python\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+--e Number of epochs: 100
+--ld1 Latent dimension 1: 512
+--b Batch size: 32
+
+2018-05-14 16:39:25.353582: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\platform\cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2
+2018-05-14 16:39:26.159668: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:1212] Found device 0 with properties:
+name: GeForce GTX 960M major: 5 minor: 0 memoryClockRate(GHz): 1.176
+pciBusID: 0000:01:00.0
+totalMemory: 4.00GiB freeMemory: 3.35GiB
+2018-05-14 16:39:26.166561: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:1312] Adding visible gpu devices: 0
+2018-05-14 16:39:29.562573: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:993] Creating TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 3084 MB memory) -> physical GPU (device: 0, name: GeForce GTX 960M, pci bus id: 0000:01:00.0, compute capability: 5.0)
+
+Question Answerer model with these parameters found, loading model from file: Full_Question_Answerer_100_512.h5
+
+
+Evaluating question answerer on test data
+5673/5673 [==============================] - 31s 6ms/step
+Loss: 1.45671246515345
+Accuracy: 0.6762124510978068
+Converting answers
+Converting predicted answers
+
+WUPS measure with threshold 0.9
+ 11%|██████████████████▏                                                                                                                                                       | 608/5673 [00:09<01:22, 61.06it/s]D:\Program Files HDD\Python\lib\site-packages\tqdm\_monitor.py:89: TqdmSynchronisationWarning: Set changed size during iteration (see https://github.com/tqdm/tqdm/issues/481)
+  TqdmSynchronisationWarning)
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5673/5673 [01:06<00:00, 84.94it/s]
+0.2048646785472839
+
+Accuracy1 Answers: 0.15417691431705183
+Accuracy2 Answers: 0.1315043791859866
+Converting questions
+Converting predicted questions
+Accuracy1 Questions: 0.8198590974576669
+Accuracy2 Questions: 0.8124695157845165
+
+Converting questions
+Converting predicted questions
+Converting answers
+Converting predicted answers
+
+Accuracy1 Questions: 0.8090605783105781
+Accuracy2 Questions: 0.7977736549165121
+ 0. what colors are the garbage bins close to the wall in the ~                          --- what colors are the boxes shade close to the wall in the image177                10/13
+ 1. what is near the papers in the ~                                                     --- what is near the stove in the image601                                           6/8
+ 2. what is the largest dark brown object in this picture in the ~                       --- what is the largest dark object in in this picture in the image51                10/13
+ 3. what is the object on the floor in the corner in the ~                               +++ what is the object on the floor in the corner in the image751                    12/13
+ 4. what is in front of the curtain behind the armchair in the ~                         --- what is in front of the fireplace in the picture in the image751                 9/13
+ 5. how many flowers are there in the flower vase of the ~                               --- how many handles are there in the tea of of the                                  8/12
+ 6. what is on the left side of the salt shaker in the ~                                 --- what is on the left side of the bean cover in the image897                       10/13
+ 7. what is behind the chair in the ~                                                    +++ what is behind the chair in the image955                                         7/8
+ 8. what is on the left side of the chair in the ~                                       +++ what is on the left side of the chair in the image955                            11/12
+ 9. what is on the right side of the printer in the ~                                    +++ what is on the right side of the printer in the image867                         11/12
+10. what is to the right of the treadmill in the ~                                       --- what is to the right of the shelf in the image324                                9/11
+11. how many chairs are around the table in the ~                                        +++ how many chairs are around the table in the image1382                            9/10
+12. what object is found at the bottom left in the ~                                     --- what object is found near the left rack in the image827                          7/11
+13. what is the frame colour of the door in the ~                                        --- what is the colour made in the door in the image94                               7/11
+14. what is on the right side of the blinds in the ~                                     +++ what is on the right side of the blinds in the image958                          11/12
+15. what is the colour of the bookshelf in the ~                                         +++ what is the colour of the bookshelf in the image454                              9/10
+16. what is on the plastic stand in the ~                                                --- what is on the night stand in the image867                                       7/9
+17. what is placed in the shelf in the ~                                                 +++ what is placed in the shelf in the image233                                      8/9
+18. what color are the walls in the ~                                                    +++ what color are the walls in the image1042                                        7/8
+19. how many framed pictures are there in the ~                                          --- how many red are are there in the image1351                                      6/9
+20. what are the objects kept on the rack in the ~                                       +++ what are the objects kept on the rack in the image101                            10/11
+21. what is the object in front of the room divider on the floor in the ~                --- what is the object in front of the room on the floor in the the                  10/16
+22. what is on the bed in the ~                                                          +++ what is on the bed in the image1042                                              7/8
+23. what are the most colorful objects in this picture in the ~                          --- what are the most objects in in this picture in the image245                     9/12
+24. what is placed above the table in the ~                                              --- what is placed on the table in the image805                                      7/9
+25. what is on the bed in the ~                                                          +++ what is on the bed in the image1042                                              7/8
+26. what is in front of the door in the ~                                                +++ what is in front of the door in the image110                                     9/10
+27. what color is the ~ container on the left side of the faucet in the ~                --- what color is the paper wall on the left side of the faucet in the the           13/16
+28. what is in front of the window in the ~                                              +++ what is in front of the window in the image454                                   9/10
+29. what is behind chair in the ~                                                        +++ what is behind chair in the image955                                             6/7
+30. what is stuck on the left side of the wall of the ~                                  --- what is stuck on the wall side of the wall of the image1040                      11/13
+31. what is behind the sofa in the ~                                                     +++ what is behind the sofa in the image1241                                         7/8
+32. what is the cap colour of the second bottle in the ~                                 --- what is the colour colour bottles the the cup in the image101                    7/12
+33. what is on the right side of the lamp on the table in the ~                          --- what is on the right side of the chair on the table in the image751              13/15
+34. what is in the shelf behind the chair in the ~                                       --- what is in the centre of the chair in the image601                               8/11
+35. what are found to the right side of the bed in the ~                                 --- what are found to the right side of the cot in the image913                      11/13
+36. what is behind the bed in the ~                                                      +++ what is behind the bed in the image1042                                          7/8
+37. what is the brown wooden object behind the flat screen in front of the wall in the ~ --- what is the large object object on the right right the the and screen in the the 6/18
+38. what is on the table in the ~                                                        +++ what is on the table in the image805                                             7/8
+39. what is on bed in the ~                                                              +++ what is on bed in the image1042                                                  6/7
+40. what is on the right side of the picture in the ~                                    +++ what is on the right side of the picture in the image425                         11/12
+41. how many doors of the cupboard are open in the ~                                     +++ how many doors of the cupboard are open in the image755                          10/11
+42. how many pillows are there on the bed in the ~                                       +++ how many pillows are there on the bed in the image343                            10/11
+43. how many drawers are there in the ~                                                  +++ how many drawers are there in the image1042                                      7/8
+44. what is seen in the mirror reflection in the ~                                       +++ what is seen in the mirror reflection in the image739                            9/10
+45. what is in front of of the ~ box in the ~                                            --- what is in front of the the box cup in the image897                              8/12
+46. how many red couches are there in the ~                                              --- how many red cups are there in the image751                                      7/9
+47. what is the ~ object on the table in the ~                                           --- what is the object object on the table in the image805                           9/11
+48. what is behind the curtains in the ~                                                 --- what is behind the carton in the image955                                        6/8
+49. what is in front of the sofa in the ~                                                +++ what is in front of the sofa in the image454                                     9/10
+
+Accuracy1 Answers: 0.11
+Accuracy2 Answers: 0.09859154929577464
+ 0. white         blue            +++ white      1/2
+ 1. printer                       --- framed     0/1
+ 2. dresser                       --- bed        0/1
+ 3. lamp                          --- bed        0/1
+ 4. guitar                        --- sofa       0/1
+ 5. 1                             --- 2          0/1
+ 6. plastic       box             --- table      0/2
+ 7. bag                           --- shelves    0/1
+ 8. refridgerator                 --- lamp       0/1
+ 9. bottle        of      liquid  --- paper      0/3
+10. window                        --- shelves    0/1
+11. 6                             --- 2          0/1
+12. cabinet                       --- bed        0/1
+13. white                         --- brown      0/1
+14. door                          --- ornamental 0/1
+15. white                         --- brown      0/1
+16. bowl                          --- hot        0/1
+17. books                         --- book       0/1
+18. white                         --- blue       0/1
+19. 3                             --- 10         0/1
+20. books                         +++ books      1/1
+21. toilet                        --- garbage    0/1
+22. clothes       book            +++ book       1/2
+23. map           bed     sheets  --- blanket    0/3
+24. bag                           --- picture    0/1
+25. pillow        bag             --- books      0/2
+26. cloth         bag             --- photo      0/2
+27. brown                         --- white      0/1
+28. treadmill                     --- table      0/1
+29. shelves                       +++ shelves    1/1
+30. light         switch          --- towel      0/2
+31. pool          table           --- picture    0/2
+32. blue                          --- white      0/1
+33. bottle        of      liquid  --- lamp       0/3
+34. books         picture         +++ books      1/2
+35. cabinet       chair           --- decorative 0/2
+36. blinds                        --- window     0/1
+37. dresser                       --- photo      0/1
+38. tissue        box             --- books      0/2
+39. bed           sheets          --- pillow     0/2
+40. bag                           --- table      0/1
+41. 2                             +++ 2          1/1
+42. 1                             --- 2          0/1
+43. 5                             --- 2          0/1
+44. towel         blinds  window  --- mirror     0/3
+45. bottle        of      liquid  --- towel      0/3
+46. 2                             +++ 2          1/1
+47. cables                        --- books      0/1
+48. bathtub                       --- towel      0/1
+49. stool                         --- sofa       0/1
+
+D:\svenh\Documents\GitHub\tbir>py vqa.py --e 100 --wups --textonly
+D:\Program Files HDD\Python\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+--e Number of epochs: 100
+--ld1 Latent dimension 1: 512
+--b Batch size: 32
+
+2018-05-14 16:43:33.046570: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\platform\cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2
+2018-05-14 16:43:34.389630: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:1212] Found device 0 with properties:
+name: GeForce GTX 960M major: 5 minor: 0 memoryClockRate(GHz): 1.176
+pciBusID: 0000:01:00.0
+totalMemory: 4.00GiB freeMemory: 3.35GiB
+2018-05-14 16:43:34.400639: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:1312] Adding visible gpu devices: 0
+2018-05-14 16:43:41.689355: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:993] Creating TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 3084 MB memory) -> physical GPU (device: 0, name: GeForce GTX 960M, pci bus id: 0000:01:00.0, compute capability: 5.0)
+
+Question Answerer model with these parameters found, loading model from file: Text_Question_Answerer_100_512.h5
+
+
+Evaluating question answerer on test data
+5673/5673 [==============================] - 29s 5ms/step
+Loss: 2.025183436438959
+Accuracy: 1.2245489197938968
+Converting answers
+Converting predicted answers
+
+WUPS measure with threshold 0.9
+  9%|███████████████▊                                                                                                                                                          | 527/5673 [00:09<01:35, 53.88it/s]D:\Program Files HDD\Python\lib\site-packages\tqdm\_monitor.py:89: TqdmSynchronisationWarning: Set changed size during iteration (see https://github.com/tqdm/tqdm/issues/481)
+  TqdmSynchronisationWarning)
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5673/5673 [01:51<00:00, 51.08it/s]
+0.20332697088428003
+
+Accuracy1 Answers: 0.18931265133010258
+Accuracy2 Answers: 0.17284904688304997
+Converting questions
+Converting predicted questions
+Accuracy1 Questions: 0.8119824780596131
+Accuracy2 Questions: 0.8038750693778697
+
+Converting questions
+Converting predicted questions
+Converting answers
+Converting predicted answers
+
+Accuracy1 Questions: 0.8314427516927515
+Accuracy2 Questions: 0.8362235067437379
+ 0. what is behind the plastic bag in the ~                             --- what is behind the ironing board in the image322                           6/9
+ 1. what is the object close to the wall in the ~                       +++ what is the object close to the wall in the image572                       10/11
+ 2. what objects are found on the left side of the sink in the ~        +++ what objects are found on the left side of the sink in the image1351       13/14
+ 3. where is the flower kept in the ~                                   --- what is the flowers object in the image138                                 4/8
+ 4. what is the object close to the wall in the ~                       +++ what is the object close to the wall in the image572                       10/11
+ 5. what is found on the right side of the ~                            +++ what is found on the right side of the image805                            9/10
+ 6. what is the colour of the pillow on the gray sofa in the ~          --- what is the colour of the object on the last chair in the image1239        10/14
+ 7. what is to the right of the baskets in the ~                        --- what is to the right of the chair in the bag                               9/11
+ 8. what is above the cabinet in the ~                                  --- what is above the sink in the image138                                     6/8
+ 9. what is the big brown object in the ~                               --- what is the large gray object in the image54                               6/9
+10. what is on the left side of the salt shaker in the ~                --- what is on the left side of the room divider in the image798               10/13
+11. what is on the right side of the guitar in the ~                    --- what is on the right side of the bowl in the image319                      10/12
+12. what is behind the chair in the ~                                   +++ what is behind the chair in the image319                                   7/8
+13. what is the black object in the ~                                   --- what is the largest object in the image138                                 6/8
+14. what is to the right side of the bed in the ~                       +++ what is to the right side of the bed in the image586                       11/12
+15. what is stuck on the wall in the ~                                  +++ what is stuck on the wall in the image586                                  8/9
+16. what is the largest object in the ~                                 +++ what is the largest object in the image138                                 7/8
+17. what is the colour of the bed in the ~                              +++ what is the colour of the bed in the image219                              9/10
+18. what is behind the monitor in the ~                                 +++ what is behind the monitor in the image496                                 7/8
+19. what object is found in front of the photo in the ~                 --- what object is found in front of the flour in the image847                 10/12
+20. what is at the right side in the ~                                  +++ what is at the right side in the image409                                  8/9
+21. what is the object on the floor right of the bed in the ~           +++ what is the object on the floor right of the bed in the image1245          13/14
+22. what is to the left of the alarm clock in the ~                     --- what is to the left of the switch board in the image586                    9/12
+23. what is on the left side of the purple chair in the ~               --- what is on the left side of the white chair in the image67                 11/13
+24. what is on beneath the pictures in the ~                            --- what is on the ornamental plant in the image123                            5/9
+25. what is on the left side of the chair in the ~                      +++ what is on the left side of the chair in the image454                      11/12
+26. what is the colour of the hat in the ~                              --- what is the colour of the refrigerator in the image219                     8/10
+27. what is on the piano in the ~                                       +++ what is on the piano in the image354                                       7/8
+28. what is in front of the wall in the ~                               +++ what is in front of the wall in the image451                               9/10
+29. how many chairs are there in the ~                                  +++ how many chairs are there in the image798                                  7/8
+30. what are found near the wash basin in the ~                         --- what are found in the garbage mixer in the image124                        6/10
+31. what color is the laundry basket on the floor in the ~              --- what color is the clothes colour on the floor in the image417              9/12
+32. what is on the bed in the ~                                         +++ what is on the bed in the image586                                         7/8
+33. what is to the right side of the sofa in the ~                      +++ what is to the right side of the sofa in the image1318                     11/12
+34. what is in front of the basket ball in the ~                        --- what is in front of the ornamental frame in the image51                    8/11
+35. what is on the wall in the ~                                        +++ what is on the wall in the image586                                        7/8
+36. how many sofas are there in the ~                                   +++ how many sofas are there in the image1436                                  7/8
+37. what is stuck on the wall to the right side of the cabinet in the ~ +++ what is stuck on the wall to the right side of the cabinet in the image879 15/16
+38. what is on the right side of the garbage bin in the ~               +++ what is on the right side of the garbage bin in the image586               12/13
+39. what is on the left side of the chair in the ~                      +++ what is on the left side of the chair in the image454                      11/12
+40. what is behind the chair in the ~                                   +++ what is behind the chair in the image319                                   7/8
+41. what is on the right side of the paper in the ~                     +++ what is on the right side of the paper in the image392                     11/12
+42. which objects are around the sink in the ~                          --- what objects are around the table in the image586                          6/9
+43. what is found on the left side in the ~                             --- what is found on the left side of the image1046                            8/10
+44. what is on the right side of the drawer in the ~                    +++ what is on the right side of the drawer in the image586                    11/12
+45. what is in between the bed in the ~                                 +++ what is in between the bed in the image322                                 8/9
+46. what is behind the night stand in the ~                             +++ what is behind the night stand in the image798                             8/9
+47. what is on the right side of the cup in the ~                       --- what is on the right side of the cupboard in the image881                  10/12
+48. what is above the stove in the ~                                    +++ what is above the stove in the image1300                                   7/8
+49. what is to the left of sink in the ~                                +++ what is to the left of sink in the image319                                9/10
+
+Accuracy1 Answers: 0.14
+Accuracy2 Answers: 0.09859154929577464
+ 0. basket                                                                                --- plastic       of              0/1
+ 1. picture                                                                               +++ picture                       1/1
+ 2. juicer     knife                                                                      --- bottle        bottle          0/2
+ 3. glass      pot                                                                        --- sticks                        0/2
+ 4. whiteboard                                                                            --- picture                       0/1
+ 5. door                                                                                  --- stool                         0/1
+ 6. gray       red                                                                        --- yellow                        0/2
+ 7. plate                                                                                 --- books                         0/1
+ 8. window                                                                                +++ window                        1/1
+ 9. dresser                                                                               --- shoe                          0/1
+10. electric   mixer                                                                      --- wardrobe                      0/2
+11. window                                                                                --- bag                           0/1
+12. fruit                                                                                 --- window                        0/1
+13. fireplace                                                                             --- refridgerator                 0/1
+14. table                                                                                 --- cabinet                       0/1
+15. photo                                                                                 +++ photo                         1/1
+16. bed                                                                                   --- refridgerator                 0/1
+17. red                                                                                   --- brown                         0/1
+18. bookshelf                                                                             --- carton                        0/1
+19. sink                                                                                  --- bookshelf                     0/1
+20. bed                                                                                   --- cabinet                       0/1
+21. stool                                                                                 +++ stool                         1/1
+22. hand       ~                                                                          --- garbage                       0/2
+23. door                                                                                  --- kitchen                       0/1
+24. piano                                                                                 --- magazine                      0/1
+25. vase                                                                                  --- air           conditioner     0/1
+26. green                                                                                 --- black                         0/1
+27. book                                                                                  --- papers                        0/1
+28. laundry    basket                                                                     --- table                         0/2
+29. 2                                                                                     --- 4                             0/1
+30. bottle     of     hand wash liquid towel      soap                                    --- blue          yellow          0/7
+31. white                                                                                 --- red                           0/1
+32. toy        doll                                                                       --- pillow        clothes         0/2
+33. cabinet                                                                               --- table                         0/1
+34. papers                                                                                --- table                         0/1
+35. picture                                                                               +++ picture                       1/1
+36. 3                                                                                     --- 2                             0/1
+37. photo                                                                                 +++ photo                         1/1
+38. ~                                                                                     --- table                         0/1
+39. whiteboard                                                                            --- air           conditioner     0/1
+40. blinds                                                                                --- window                        0/1
+41. bread                                                                                 --- kitchen                       0/1
+42. bottle     of     hand wash liquid toothbrush holder toothbrush faucet faucet handle  --- toy                       bin 0/9
+43. photo                                                                                 --- storage                       0/1
+44. window                                                                                --- chair                         0/1
+45. blinds                                                                                --- stool                         0/1
+46. window                                                                                +++ window                        1/1
+47. bag                                                                                   --- decorative    plate           0/1
+48. microwave                                                                             --- light                         0/1
+49. stove                                                                                 --- container     set             0/1
+
+D:\svenh\Documents\GitHub\tbir>py vqa.py --e 50 --wups --visualonly
+D:\Program Files HDD\Python\lib\site-packages\h5py\__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+--e Number of epochs: 50
+--ld1 Latent dimension 1: 512
+--b Batch size: 32
+
+2018-05-14 16:48:02.028737: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\platform\cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2
+2018-05-14 16:48:02.643441: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:1212] Found device 0 with properties:
+name: GeForce GTX 960M major: 5 minor: 0 memoryClockRate(GHz): 1.176
+pciBusID: 0000:01:00.0
+totalMemory: 4.00GiB freeMemory: 3.35GiB
+2018-05-14 16:48:02.649666: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:1312] Adding visible gpu devices: 0
+2018-05-14 16:48:03.737187: I C:\tf_jenkins\workspace\rel-win\M\windows-gpu\PY\36\tensorflow\core\common_runtime\gpu\gpu_device.cc:993] Creating TensorFlow device (/job:localhost/replica:0/task:0/device:GPU:0 with 3084 MB memory) -> physical GPU (device: 0, name: GeForce GTX 960M, pci bus id: 0000:01:00.0, compute capability: 5.0)
+
+Question Answerer model with these parameters found, loading model from file: Visual_Question_Answerer_50_512.h5
+
+
+Evaluating question answerer on test data
+5673/5673 [==============================] - 12s 2ms/step
+Loss: 0.6085839544299964
+Accuracy: 0.8877297565774398
+Converting answers
+Converting predicted answers
+
+WUPS measure with threshold 0.9
+  9%|███████████████▉                                                                                                                                                          | 532/5673 [00:09<01:31, 56.14it/s]D:\Program Files HDD\Python\lib\site-packages\tqdm\_monitor.py:89: TqdmSynchronisationWarning: Set changed size during iteration (see https://github.com/tqdm/tqdm/issues/481)
+  TqdmSynchronisationWarning)
+100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 5673/5673 [01:18<00:00, 72.38it/s]
+0.22101565426065714
+
+Accuracy1 Answers: 0.1823299729434051
+Accuracy2 Answers: 0.16537867078825347
+Converting questions
+Converting predicted questions
+Traceback (most recent call last):
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\op_def_library.py", line 510, in _apply_op_helper
+    preferred_dtype=default_dtype)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\ops.py", line 1036, in internal_convert_to_tensor
+    ret = conversion_func(value, dtype=dtype, name=name, as_ref=as_ref)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\constant_op.py", line 235, in _constant_tensor_conversion_function
+    return constant(v, dtype=dtype, name=name)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\constant_op.py", line 214, in constant
+    value, dtype=dtype, shape=shape, verify_shape=verify_shape))
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\tensor_util.py", line 421, in make_tensor_proto
+    raise ValueError("None values not supported.")
+ValueError: None values not supported.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\op_def_library.py", line 524, in _apply_op_helper
+    values, as_ref=input_arg.is_ref).dtype.name
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\ops.py", line 1036, in internal_convert_to_tensor
+    ret = conversion_func(value, dtype=dtype, name=name, as_ref=as_ref)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\constant_op.py", line 235, in _constant_tensor_conversion_function
+    return constant(v, dtype=dtype, name=name)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\constant_op.py", line 214, in constant
+    value, dtype=dtype, shape=shape, verify_shape=verify_shape))
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\tensor_util.py", line 421, in make_tensor_proto
+    raise ValueError("None values not supported.")
+ValueError: None values not supported.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "vqa.py", line 124, in <module>
+    sys.exit(main())
+  File "vqa.py", line 120, in main
+    postp.print_ae_acc(test_x,qa_question,train_token)
+  File "D:\svenh\Documents\GitHub\tbir\postprocesser.py", line 53, in print_ae_acc
+    qpredictions = argmax(qpredictions,axis=-1).eval()
+  File "D:\Program Files HDD\Python\lib\site-packages\keras\backend\tensorflow_backend.py", line 1410, in argmax
+    return tf.argmax(x, axis)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\util\deprecation.py", line 432, in new_func
+    return func(*args, **kwargs)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\ops\math_ops.py", line 211, in argmax
+    return gen_math_ops.arg_max(input, axis, name=name, output_type=output_type)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\ops\gen_math_ops.py", line 508, in arg_max
+    name=name)
+  File "D:\Program Files HDD\Python\lib\site-packages\tensorflow\python\framework\op_def_library.py", line 528, in _apply_op_helper
+    (input_name, err))
+ValueError: Tried to convert 'input' to a tensor and failed. Error: None values not supported.

@@ -6,16 +6,18 @@ from keras.models import load_model, Model
 from keras.layers import Dense, Embedding, Input, Dropout, concatenate, RepeatVector
 from keras.layers.recurrent import LSTM
 from keras.callbacks import ModelCheckpoint
+from tensorflow import InteractiveSession
 import preprocesser as prep
 import postprocesser as postp
 import model_full as full
 import model_text as text
+import model_visual as visual
 import os.path
 import argparse
 import sys
 
-def model(epochs,ld1,batch,load,textonly):
-    filestart = 'Text' if textonly else 'Full'
+def model(epochs,ld1,batch,load,textonly,visualonly):
+    filestart = 'Text' if textonly else 'Visual' if visualonly else 'Full'
     file_id = filestart + '_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
@@ -29,6 +31,8 @@ def model(epochs,ld1,batch,load,textonly):
         if args.improve:
             if textonly:
                 model = text.train_model(model,train_x,train_x_cat,train_t_cat,epochs,batch,ld1)
+            elif visualonly:
+                model = visual.train_model(model,train_x,train_imgs,train_t_cat,epochs,batch,ld1)
             else:
                 model = full.train_model(model,train_x,train_imgs,train_x_cat,train_t_cat,epochs,batch,ld1)
     elif os.path.exists(file_id):
@@ -39,6 +43,9 @@ def model(epochs,ld1,batch,load,textonly):
         if textonly:
             model = text.build_model(ld1,voc)
             model = text.train_model(model,train_x,train_x_cat,train_t_cat,epochs,batch,ld1)
+        elif visualonly:
+            model = visual.build_model(ld1,voc,train_imgs.shape[1])
+            model =  visual.train_model(model,train_x,train_imgs,train_t_cat,epochs,batch,ld1)
         else:
             model = full.build_model(ld1,voc,train_imgs.shape[1])
             model = full.train_model(model,train_x,train_imgs,train_x_cat,train_t_cat,epochs,batch,ld1)
@@ -49,6 +56,10 @@ def model(epochs,ld1,batch,load,textonly):
     if textonly:
         qa_result = model.evaluate(test_x, [test_t_cat, test_x_cat], batch_size=batch)
         [qa_answer,qa_question] = model.predict(test_x, batch_size=batch)
+    elif visualonly:
+        qa_result = model.evaluate([test_x,test_imgs],test_t_cat, batch_size=batch)
+        qa_answer = model.predict([test_x,test_imgs], batch_size=batch)
+        qa_question = None
     else:
         qa_result = model.evaluate([test_x,test_imgs], [test_t_cat,test_x_cat], batch_size=batch)
         [qa_answer,qa_question] = model.predict([test_x,test_imgs], batch_size=batch)
@@ -74,6 +85,8 @@ def main(argv=None):
                            help='Compute the WUPS Score')
     argparser.add_argument('--textonly', action="store_true",
                            help='Ignore the images')
+    argparser.add_argument('--visualonly', action="store_true",
+                           help='Without autoencoder')
     argparser.add_argument('--improve', action="store_true",
                            help='Further train the loaded model')
 
@@ -96,10 +109,17 @@ def main(argv=None):
     print('--e Number of epochs: ' + str(epochs))
     print('--ld1 Latent dimension 1: ' + str(ld1))
     print('--b Batch size: ' + str(batch))
+    print('')
 
-    test_x, test_t, qa_answer, qa_question, train_token = model(epochs,ld1,batch,args.load,args.textonly)
+    InteractiveSession()
 
-    postp.print_compare(test_x,test_t,qa_answer,qa_question,nbtest,train_token,args.wups)
+    test_x, test_t, qa_answer, qa_question, train_token = model(epochs,ld1,batch,args.load,args.textonly,args.visualonly)
+
+    if args.wups:
+        postp.print_wups_acc(test_t,qa_answer,train_token)
+        if not args.visualonly:
+            postp.print_ae_acc(test_x,qa_question,train_token)
+    postp.print_compare(test_x,test_t,qa_answer,qa_question,nbtest,train_token)
 
 if __name__ == "__main__":
     sys.exit(main())

@@ -4,6 +4,174 @@ from nltk.corpus import wordnet as wn
 from tqdm import tqdm
 import numpy as np
 
+def sequences_to_text(token, x):
+    reverse_word_dict = dict(map(reversed, token.word_index.items()))
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
+    words_to_sentence = lambda y: ' '.join(filter(None, y))
+    sentence_list = list(map(lambda y: words_to_sentence(seqs_to_words(y)),x))
+    # sentence_list = list()
+    # for i in range(len(x)):
+    #     sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
+    return sentence_list
+
+def sequences_to_matrix(token, x):
+    reverse_word_dict = dict(map(reversed, token.word_index.items()))
+    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
+    word_matrix = list(map(lambda y: seqs_to_words(y),x))
+    # word_matrix = list()
+    # for i in range(len(x)):
+    #     word_matrix.append(seqs_to_words(x[i]))
+    return word_matrix  
+
+def print_wups_acc(answers,predictions,token):
+    print('Converting answers')
+    answers_text = sequences_to_text(token, answers.tolist())
+    answers_matrix = sequences_to_matrix(token, answers.tolist())
+    print('Converting predicted answers')
+    predictions = argmax(predictions,axis=-1).eval()
+    predictions_text = sequences_to_text(token, predictions.tolist())
+    predictions_matrix = sequences_to_matrix(token, predictions.tolist())
+    print('\nWUPS measure with threshold 0.9')
+    our_element_membership=lambda x,y: wup_measure(x,y)
+    our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
+    score_list = list()
+    for i in tqdm(range(len(answers))):
+        answer = list(filter(None,answers_matrix[i]))
+        prediction = list(filter(None,predictions_matrix[i]))
+        score_list.append(score_it(answer,prediction,our_set_membership))
+    final_score=float(sum(score_list))/float(len(score_list))
+    print(final_score)
+    print('')
+    acc1_a,acc2_a = accuracy_answers(answers_matrix,predictions_matrix)
+    print('Accuracy1 Answers: ' + str(acc1_a))
+    print('Accuracy2 Answers: ' + str(acc2_a))
+
+def print_ae_acc(questions,qpredictions,token):
+    print('Converting questions')
+    questions = sequences_to_text(token,np.asarray(questions).tolist())
+    print('Converting predicted questions')
+    qpredictions = argmax(qpredictions,axis=-1).eval()
+    qpredictions = sequences_to_text(token,np.asarray(qpredictions).tolist())
+    acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
+    print('Accuracy1 Questions: ' + str(acc1_q))
+    print('Accuracy2 Questions: ' + str(acc2_q))
+
+def print_compare(questions,answers,predictions,qpredictions,N,token):
+    rand = np.random.choice(5000, N)
+    print('\nConverting questions')
+    questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
+    if not qpredictions is None:
+        print('Converting predicted questions')
+        qpredictions = argmax(qpredictions[rand],axis=-1).eval()
+        qpredictions = sequences_to_text(token,np.asarray(qpredictions).tolist())
+    print('Converting answers')
+    answers = sequences_to_matrix(token, answers[rand].tolist())
+    print('Converting predicted answers')
+    predictions = argmax(predictions[rand],axis=-1).eval()
+    predictions = sequences_to_matrix(token, predictions.tolist())
+    print('')
+    # if not qpredictions is None:
+    #     acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
+    #     print('Accuracy1 Questions: ' + str(acc1_q))
+    #     print('Accuracy2 Questions: ' + str(acc2_q))
+    print_questions(questions,qpredictions)
+    # acc1_a,acc2_a = accuracy_answers(answers,predictions)
+    # print('Accuracy1 Answers: ' + str(acc1_a))
+    # print('Accuracy2 Answers: ' + str(acc2_a))
+    print_answers(answers,predictions)
+
+def accuracy_answers(answers,predictions):
+    acc1_num = 0
+    acc1_denom = 0
+    acc2_num = 0
+    acc2_denom = 0
+    for i in range(0,len(answers)):
+        nb_answers = len(set(filter(lambda x: not x is None,answers[i])))
+        nb_right = len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i]))
+        acc1_num += nb_right/nb_answers
+        acc1_denom += 1
+        acc2_num += nb_right
+        acc2_denom += nb_answers
+    acc1 = acc1_num/acc1_denom
+    acc2 = acc2_num/acc2_denom
+    return acc1,acc2
+
+def accuracy_questions(questions,qpredictions):
+    acc1_num = 0
+    acc1_denom = 0
+    acc2_num = 0
+    acc2_denom = 0
+    for i in range(0,len(questions)):
+        nb_words = len(questions[i].split(' '))
+        nb_qwords = len(qpredictions[i].split(' '))
+        nb_right = 0
+        for j in range(min(nb_words,nb_qwords)):
+            if questions[i].split(' ')[j] == qpredictions[i].split(' ')[j]:
+                nb_right += 1
+        acc1_num += nb_right/nb_words
+        acc1_denom += 1
+        acc2_num += nb_right
+        acc2_denom += nb_words
+    acc1 = acc1_num/acc1_denom
+    acc2 = acc2_num/acc2_denom
+    return acc1,acc2
+
+def print_questions(questions,qpredictions):
+    if not qpredictions is None:
+        maxq = max(list(map(len,questions)))
+        maxqp = max(list(map(len,qpredictions)))
+    for i in range(0,len(questions)):
+        if qpredictions is None:
+            print(str(i)+'. '+questions[i])
+        else:
+            nb_words = len(questions[i].split(' '))
+            nb_qwords = len(qpredictions[i].split(' '))
+            nb_right = 0
+            for j in range(min(nb_words,nb_qwords)):
+                if questions[i].split(' ')[j] == qpredictions[i].split(' ')[j]:
+                    nb_right += 1
+            start = ' ' if i < 10 else ''
+            correct = '+++ ' if nb_words == nb_right+1 else '--- '
+            print(start + str(i)+'. '
+                + ('{:'+str(maxq)+'} ').format(questions[i])
+                + correct 
+                + ('{:'+str(maxqp)+'} ').format(qpredictions[i])
+                + str(nb_right)
+                + '/'
+                + str(nb_words))
+    print('')
+
+def print_answers(answers,predictions):
+    maxa = list(map(lambda x: 0 if x is None else len(x),answers[0]))
+    maxp = list(map(lambda x: 0 if x is None else len(x),predictions[0]))
+    for i in range(0,len(answers)):
+        for j in range(0,len(answers[0])):
+            if not answers[i][j] is None and len(answers[i][j]) > maxa[j]:
+                maxa[j] = len(answers[i][j])
+            if not predictions[i][j] is None and len(predictions[i][j]) > maxp[j]:
+                maxp[j] = len(predictions[i][j])
+    formata = ''
+    formatp = ''
+    for i in range(0,len(answers[0])):
+        if maxa[i] > 0:
+            formata += '{:'+str(maxa[i])+'} '
+        if maxp[i] > 0:
+            formatp += '{:'+str(maxp[i])+'} '
+    for i in range(0,len(answers)):
+        nb_answers = len(set(filter(lambda x: not x is None,answers[i])))
+        nb_right = len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i]))
+        start = ' ' if i < 10 else ''
+        correct = ' +++ ' if nb_right > 0 else ' --- '
+        answerlist = list(map(lambda x: "" if x is None else x,answers[i]))
+        predictionlist = list(map(lambda x: "" if x is None else x,predictions[i]))
+        print(start + str(i) + '. '
+             + formata.format(*answerlist)
+             + correct
+             + formatp.format(*predictionlist)
+             + str(nb_right)
+             + '/'
+             + str(nb_answers))
+
 def wup_measure(a,b,similarity_threshold=0.9):
     # Fetched from https://datasets.d2.mpi-inf.mpg.de/mateusz14visual-turing/calculate_wups.py
 
@@ -98,222 +266,3 @@ def score_it(A,T,m):
     score_left=0 if A==[] else np.prod(list(map(lambda a: m(a,T), A)))
     score_right=0 if T==[] else np.prod(list(map(lambda t: m(t,A),T)))
     return min(score_left,score_right) 
-
-def sequences_to_text(token, x):
-    print('Converting to text...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
-    words_to_sentence = lambda y: ' '.join(filter(None, y))
-    sentence_list = list()
-    for i in tqdm(range(len(x))):
-        sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
-    return sentence_list
-
-def sequences_to_matrix(token, x):
-    print('Converting to text...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
-    word_matrix = list()
-    for i in tqdm(range(len(x))):
-        word_matrix.append(seqs_to_words(x[i]))
-    return word_matrix  
-
-def catsequences_to_matrix(token, x):
-    print('Converting to text...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    from_categorical = lambda y: argmax(y, axis=-1).eval()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
-    word_matrix = list()
-    for i in tqdm(range(len(x))):
-        word_matrix.append(seqs_to_words(x[i]))
-    return word_matrix  
-
-def catsequences_to_text(token, x):
-    print('Converting to text...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    from_categorical = lambda y: argmax(y, axis=-1).eval()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, from_categorical(y)))
-    words_to_sentence = lambda y: ' '.join(filter(None, y))
-    sentence_list = list()
-    for i in tqdm(range(len(x))):
-        sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
-    return sentence_list
-
-def sequence_to_text(token, x):
-    print('Converting to text...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    from_categorical = lambda y: argmax(y, axis=-1).eval()
-    return reverse_word_dict.get(from_categorical(x))
-
-def matrix_to_text(token, x):
-    print('Converting to text vector...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
-    return seqs_to_words(x)
-
-def answermatrix_to_text(token, x):
-    print('Converting to text vector...')
-    reverse_word_dict = dict(map(reversed, token.word_index.items()))
-    InteractiveSession()
-    seqs_to_words = lambda y: list(map(reverse_word_dict.get, argmax(y,axis=-1).eval()))
-    y = list()
-    for i in range(0,len(x)):
-        a = x[i]
-        b = list()
-        for j in range(0,11):
-            index = argmax(a,axis=-1).eval()
-            answer = reverse_word_dict.get(index)
-            a[index] = 0
-            b.append(answer)
-        y.append(b)
-    # return seqs_to_words(x)
-    return y
-
-
-def print_compare(questions,answers,predictions,qpredictions,N,token,compute_wups):
-    rand = np.random.choice(5000, N)
-    if (compute_wups):
-        print('Converting questions')
-        questions = sequences_to_text(token,np.asarray(questions).tolist())
-        if not qpredictions is None:
-            print('Converting predicted questions')
-            qpredictions = catsequences_to_text(token,np.asarray(qpredictions).tolist())
-        print('Converting answers')
-        answers = sequences_to_text(token, answers.tolist())
-        print('Converting predicted answers')
-        predictions = catsequences_to_text(token, predictions.tolist())
-        print('\nWUPS measure with threshold 0.9')
-        our_element_membership=lambda x,y: wup_measure(x,y)
-        our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
-        score_list = list()
-        for i in tqdm(range(0,len(answers))):
-            score_list.append(score_it(answers[i],predictions[i],our_set_membership))
-        # score_list=[score_it(answer,prediction,our_set_membership)
-        #                 for (answer,prediction) in zip(answers,predictions)]
-        final_score=float(sum(score_list))/float(len(score_list))
-        print(final_score)
-    else:
-        print('Converting questions')
-        questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
-        if not qpredictions is None:
-            print('Converting predicted questions')
-            qpredictions = catsequences_to_text(token,np.asarray(qpredictions)[rand].tolist())
-        print('Converting answers')
-        answers = sequences_to_matrix(token, answers[rand].tolist())
-        print('Converting predicted answers')
-        predictions = catsequences_to_matrix(token, predictions[rand].tolist())
-
-    print('')
-    if not qpredictions is None:
-        acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
-        print('Accuracy1 Questions: ' + str(acc1_q))
-        print('Accuracy2 Questions: ' + str(acc2_q))
-    if compute_wups:
-        print_questions(questions[rand],qpredictions[rand])
-    else:
-        print_questions(questions,qpredictions)
-    acc1_a,acc2_a = accuracy_answers(answers,predictions)
-    print('Accuracy1 Answers: ' + str(acc1_a))
-    print('Accuracy2 Answers: ' + str(acc2_a))
-    if compute_wups:
-        print_answers(answers[rand],predictions[rand])
-    else: 
-        print_answers(answers,predictions)
-
-def accuracy_answers(answers,predictions):
-    acc1_num = 0
-    acc1_denom = 0
-    acc2_num = 0
-    acc2_denom = 0
-    for i in range(0,len(answers)):
-        nb_answers = len(set(filter(lambda x: not x is None,answers[i])))
-        nb_right = len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i]))
-        acc1_num += nb_right/nb_answers
-        acc1_denom += 1
-        acc2_num += nb_right
-        acc2_denom += nb_answers
-    acc1 = acc1_num/acc1_denom
-    acc2 = acc2_num/acc2_denom
-    return acc1,acc2
-
-def accuracy_questions(questions,qpredictions):
-    acc1_num = 0
-    acc1_denom = 0
-    acc2_num = 0
-    acc2_denom = 0
-    for i in range(0,len(questions)):
-        nb_words = len(questions[i].split(' '))
-        nb_qwords = len(qpredictions[i].split(' '))
-        nb_right = 0
-        for j in range(min(nb_words,nb_qwords)):
-            if questions[i].split(' ')[j] == qpredictions[i].split(' ')[j]:
-                nb_right += 1
-        acc1_num += nb_right/nb_words
-        acc1_denom += 1
-        acc2_num += nb_right
-        acc2_denom += nb_words
-    acc1 = acc1_num/acc1_denom
-    acc2 = acc2_num/acc2_denom
-    return acc1,acc2
-
-def print_questions(questions,qpredictions):
-    if not qpredictions is None:
-        maxq = max(list(map(len,questions)))
-        maxqp = max(list(map(len,qpredictions)))
-    for i in range(0,len(questions)):
-        if qpredictions is None:
-            print(str(i)+'. '+questions[i])
-        else:
-            nb_words = len(questions[i].split(' '))
-            nb_qwords = len(qpredictions[i].split(' '))
-            nb_right = 0
-            for j in range(min(nb_words,nb_qwords)):
-                if questions[i].split(' ')[j] == qpredictions[i].split(' ')[j]:
-                    nb_right += 1
-            start = ' ' if i < 10 else ''
-            correct = '+++ ' if nb_words == nb_right+1 else '--- '
-            print(start + str(i)+'. '
-                + ('{:'+str(maxq)+'} ').format(questions[i])
-                + correct 
-                + ('{:'+str(maxqp)+'} ').format(qpredictions[i])
-                + str(nb_right)
-                + '/'
-                + str(nb_words))
-    print('\n')
-
-def print_answers(answers,predictions):
-    maxa = list(map(lambda x: 0 if x is None else len(x),answers[0]))
-    maxp = list(map(lambda x: 0 if x is None else len(x),predictions[0]))
-    for i in range(0,len(answers)):
-        for j in range(0,len(answers[0])):
-            if not answers[i][j] is None and len(answers[i][j]) > maxa[j]:
-                maxa[j] = len(answers[i][j])
-            if not predictions[i][j] is None and len(predictions[i][j]) > maxp[j]:
-                maxp[j] = len(predictions[i][j])
-    formata = ''
-    formatp = ''
-    for i in range(0,len(answers[0])):
-        if maxa[i] > 0:
-            formata += '{:'+str(maxa[i])+'} '
-        if maxp[i] > 0:
-            formatp += '{:'+str(maxp[i])+'} '
-    for i in range(0,len(answers)):
-        nb_answers = len(set(filter(lambda x: not x is None,answers[i])))
-        nb_right = len(set(filter(lambda x: not x is None,answers[i])).intersection(predictions[i]))
-        start = ' ' if i < 10 else ''
-        correct = ' +++ ' if nb_right > 0 else ' --- '
-        answerlist = list(map(lambda x: "" if x is None else x,answers[i]))
-        predictionlist = list(map(lambda x: "" if x is None else x,predictions[i]))
-        print(start + str(i) + '. '
-             + formata.format(*answerlist)
-             + correct
-             + formatp.format(*predictionlist)
-             + str(nb_right)
-             + '/'
-             + str(nb_answers))
