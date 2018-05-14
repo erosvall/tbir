@@ -2,14 +2,56 @@
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \usepackage{amsfonts}
+\usepackage{wrapfig}
+\usepackage{subfig}
 \usepackage{amssymb}
 \usepackage{makeidx}
 \usepackage{graphicx}
+\usepackage[a4paper,margin=1in]{geometry}
 \author{Erik Rosvall \\ Sven Hermans}
-\title{Text Based Information Retrieval \\ Project \\ Part 1 \& 2}
+\title{Text Based Information Retrieval \\ Visual Question Answering Project \\ Part 1 \& 2}
 \begin{document}
 	\maketitle
-	\section*{Part 1}
+	\section*{Part 1 - Resubmission}
+		Part 1 of the assignment had to be redone in a significant way, and many parts of the previous submitted code is no longer used. The reason for the change is the realization that the model we learned where to simplistic to generalize well. The report well go through how and where the changes has been made.
+	\subsection*{Preprocessing}
+		The preprocessing has changed from a one-hot representation to a embedding layer. While a one-hot representation should in theory work well, we found that using the embedding performed similarly, but simplifying the interactions and code in general for the program. We still did a conversion to index form with the help of a vocabulary dictionary, but the last step of the preprocessing step changed. We still used padding to enable batch computing. This had some effects one the accuracy calculations, but is necessary for such a deep architecture.
+	\subsection*{Autoencoder}
+		\begin{wrapfigure}{r}{0.5\textwidth}
+		\begin{center}
+			\includegraphics[width=0.3\textwidth]{text_classifier_w_autoencoder.png}
+		\end{center}
+		\caption{Model architecture for the text based question answering. \label{text_classifier_w_autoencoder}}
+	\end{wrapfigure}
+	Instead of using a stacked, many-to-many autoencoder, we changed the autoencoder to a single step but one-to-one representation. This in order to try to force the model to learn a more non-linear representation to use in the prediction task. The very good results delivered earlier where likerly due to us setting \texttt{return\_sequence = True} which allows the model to learn to a simple a representation between the steps. In this version we're however not reducing the dimensionality of the data to the same degree, now settling for 512.
+
+
+	As seen in figure \ref{text_classifier_w_autoencoder} we've chosen an integrated structure, with a single input layer and embedding layer, that then outputs to both a normal LSTM layer for feature extraction and one for lower dimension encoder. These two models are evaluated separably. The encoder and LSTM feature extraction are then concatenated and feed to an answering LSTM. The Dense layers are there to aid output. The Dropout is to try to limit overfitting, something that the literature referenced as a problem for LSTM networks.
+	
+	Training the new autoencoder with $ XXXXX $ epochs gives us an accuracy of $ XXXX \%$.  An example of the output:
+
+
+	\subsection*{Prediction results}
+	The prediction reaches an accuracy of $ XXXX\% $ is achieved overall, with \textit{WUPS} at $ XXXX $. The accuracy measure of the algorithm should be taken with a grain of salt, since we do include the padded zeros in the accuracy. An attempt of calculating the accuracy ourselves to counteract this has been done. Since we're dealing with multiple possible answers there is ambiguity of how to calculate accuracy. We've chosen a word by word basis as out metric.
 \pagebreak
 	\section*{Part 2}
+	Many features stays the same between the text-only prediction from part 1 and the addition of visual data. The layers "behind" the concatenation layer stays the same. The decoder and autoencoder output also stays the same between the old model and the new one.
+	\subsection*{Inclusion of visual features}
+	When adding the new visual features we chose to give it after text feature extraction has taken place. We could have chosen to concatenate the text feature vector with the visual one, but we felt that the model became less modular and that we used a specific LSTM layer for prediction negated the need to blend these two features. It also kept the text only model and visual one as close as possible. 
+	\subsection*{Inclusion of autoencoder}
+	When considering the performance of the model, the need for the extra complexity and training time of the autoencoder where discussed and compared. The two models can be seen in figure \ref{vqa}. The featured extracted by both the encoder and \texttt{Text\_features}-layer should (in theory) be able to learn independent features of the text, trying to throw away things like grammatical quirks and non informative words (like \textit{the} etc) to keep the defining words or features. One of the problems with neural networks in general is the difficulty to interpret what that representation is, but if the encoder for example is able to reconstruct the sentence well the information has been condensed to an more informative state.
+	\begin{figure}[h]
+		\centering
+		\begin{tabular}{ c | c }
+			\subfloat[Full model]{\includegraphics[scale=0.3]{classifier_w_autoencoder.png}} & 
+			\subfloat[Reduced model, without autoencoder]{\includegraphics[scale=0.3]{classifier.png}}
+		\end{tabular}
+	\caption{The two different models considered in the VQA task. \label{vqa}}
+	\end{figure} 
+	\subsection*{Parameter choice}
+	As above we looked at keeping the network free of too many free hyper parameters to optimize. Therefore is all LSTM networks (with the exception of the decoder) kept at the same amount of hidden neurons of 512. These could of course be individually tuned, but with the training time for the network to start performing well (sometimes 30-50 epochs) this was unpractical. The choice of optimizer and activation function in the Dense layers where also held static. For this network they are \texttt{adam} and \texttt{softmax} as these where referenced by both the general public and the literature as the most well performing. The Dropout parameter had surprisingly little affect on the networks performance, and might have been dropped.
+	\subsection*{Predictions}
+	Firstly looking at the output of the question autoencoder, the same question as above is encoded (and decoded) as: 
+	
+	
 \end{document}
