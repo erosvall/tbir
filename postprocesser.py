@@ -175,14 +175,18 @@ def answermatrix_to_text(token, x):
     # return seqs_to_words(x)
     return y
 
+
 def print_compare(questions,answers,predictions,qpredictions,N,token,compute_wups):
     rand = np.random.choice(5000, N)
     if (compute_wups):
-        print('Converting Questions')
+        print('Converting questions')
         questions = sequences_to_text(token,np.asarray(questions).tolist())
-        print('Converting Answers')
+        if not qpredictions is None:
+            print('Converting predicted questions')
+            qpredictions = catsequences_to_text(token,np.asarray(qpredictions).tolist())
+        print('Converting answers')
         answers = sequences_to_text(token, answers.tolist())
-        print('Converting Predictions')
+        print('Converting predicted answers')
         predictions = catsequences_to_text(token, predictions.tolist())
         print('\nWUPS measure with threshold 0.9')
         our_element_membership=lambda x,y: wup_measure(x,y)
@@ -194,9 +198,6 @@ def print_compare(questions,answers,predictions,qpredictions,N,token,compute_wup
         #                 for (answer,prediction) in zip(answers,predictions)]
         final_score=float(sum(score_list))/float(len(score_list))
         print(final_score)
-        # questions = np.asarray(questions)[rand]
-        # answers = np.asarray(answers)[rand]
-        # predictions = np.asarray(predictions)[rand]
     else:
         print('Converting questions')
         questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
@@ -213,11 +214,17 @@ def print_compare(questions,answers,predictions,qpredictions,N,token,compute_wup
         acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
         print('Accuracy1 Questions: ' + str(acc1_q))
         print('Accuracy2 Questions: ' + str(acc2_q))
-    print_questions(questions,qpredictions)
+    if compute_wups:
+        print_questions(questions[rand],qpredictions[rand])
+    else:
+        print_questions(questions,qpredictions)
     acc1_a,acc2_a = accuracy_answers(answers,predictions)
     print('Accuracy1 Answers: ' + str(acc1_a))
     print('Accuracy2 Answers: ' + str(acc2_a))
-    print_answers(answers,predictions)
+    if compute_wups:
+        print_answers(answers[rand],predictions[rand])
+    else: 
+        print_answers(answers,predictions)
 
 def accuracy_answers(answers,predictions):
     acc1_num = 0

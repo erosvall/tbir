@@ -76,6 +76,7 @@ def main(argv=None):
                            help='Ignore the images')
     argparser.add_argument('--improve', action="store_true",
                            help='Further train the loaded model')
+
     args = argparser.parse_args(argv)
 
 
@@ -83,6 +84,7 @@ def main(argv=None):
     ld1 = 512
     epochs = 1
     batch = 32
+    nbtest = 50
 
     if args.ld1:
         ld1 = args.ld1
@@ -97,7 +99,7 @@ def main(argv=None):
 
     test_x, test_t, qa_answer, qa_question, train_token = model(epochs,ld1,batch,args.load,args.textonly)
 
-    postp.print_compare(test_x,test_t,qa_answer,qa_question,10,train_token,args.wups)
+    postp.print_compare(test_x,test_t,qa_answer,qa_question,nbtest,train_token,args.wups)
 
 if __name__ == "__main__":
     sys.exit(main())
