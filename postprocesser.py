@@ -9,18 +9,12 @@ def sequences_to_text(token, x):
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
     words_to_sentence = lambda y: ' '.join(filter(None, y))
     sentence_list = list(map(lambda y: words_to_sentence(seqs_to_words(y)),x))
-    # sentence_list = list()
-    # for i in range(len(x)):
-    #     sentence_list.append(words_to_sentence(seqs_to_words(x[i])))
     return sentence_list
 
 def sequences_to_matrix(token, x):
     reverse_word_dict = dict(map(reversed, token.word_index.items()))
     seqs_to_words = lambda y: list(map(reverse_word_dict.get, y))
     word_matrix = list(map(lambda y: seqs_to_words(y),x))
-    # word_matrix = list()
-    # for i in range(len(x)):
-    #     word_matrix.append(seqs_to_words(x[i]))
     return word_matrix  
 
 def print_wups_acc(answers,predictions,token):
@@ -43,8 +37,8 @@ def print_wups_acc(answers,predictions,token):
     print(final_score)
     print('')
     acc1_a,acc2_a = accuracy_answers(answers_matrix,predictions_matrix)
-    print('Accuracy1 Answers: ' + str(acc1_a))
-    print('Accuracy2 Answers: ' + str(acc2_a))
+    print('Accuracy answers (/question): ' + str(acc1_a))
+    print('Accuracy answers (/answer): ' + str(acc2_a))
 
 def print_ae_acc(questions,qpredictions,token):
     print('Converting questions')
@@ -53,8 +47,8 @@ def print_ae_acc(questions,qpredictions,token):
     qpredictions = argmax(qpredictions,axis=-1).eval()
     qpredictions = sequences_to_text(token,np.asarray(qpredictions).tolist())
     acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
-    print('Accuracy1 Questions: ' + str(acc1_q))
-    print('Accuracy2 Questions: ' + str(acc2_q))
+    print('Accuracy questions (/question): ' + str(acc1_q))
+    print('Accuracy questions (/word):' + str(acc2_q))
 
 def print_compare(questions,answers,predictions,qpredictions,N,token):
     rand = np.random.choice(5000, N)
