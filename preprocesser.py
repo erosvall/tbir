@@ -1,21 +1,7 @@
-from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Embedding, Input, Dropout, concatenate, RepeatVector
-from keras.layers.recurrent import LSTM
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.utils import to_categorical, plot_model
-from keras.backend import argmax
-from keras.callbacks import ModelCheckpoint
-from tensorflow import InteractiveSession
-from keras import regularizers
-from nltk.corpus import wordnet as wn
-from tqdm import tqdm
 import numpy as np
-import os.path
-import argparse
-import sys
-import time
-
 
 def load_cnn(filename):
     # Returns a matrix where each row corresponds to imageXXXX, 
