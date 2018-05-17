@@ -8,7 +8,7 @@ import os.path
 import argparse
 import sys
 
-def build_model(l1,voc):
+def build_model(drop,ae_weight,l1,voc):
     print('Building model...\n')
     # Build text based input. embedding and LSTM layer
     # The Input layer is only there for convenience and doesn't do anything
@@ -52,7 +52,7 @@ def build_model(l1,voc):
     # We merge the model, add a dropout to combat some overfitting and fit.
     merged = concatenate([word_encoding, encoder]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
-    dropout = Dropout(0.5)(merged)
+    dropout = Dropout(drop)(merged)
     repeat_vector = RepeatVector(11)(dropout)
     answer_layer = LSTM(
     voc,
@@ -71,14 +71,14 @@ def build_model(l1,voc):
         loss = 'categorical_crossentropy', 
         optimizer = 'adam', 
         metrics = ['categorical_accuracy'],
-        loss_weights=[1., 1.])
+        loss_weights=[1., ae_weight])
 
     # plot_model(model, to_file='text_classifier_w_autoencoder.png')
     return model
 
-def train_model(model,x,x_cat,t_cat,e,batch,l1):
+def train_model(model,x,x_cat,t_cat,e,batch,l1,ae_weight,checkpoint):
     print('Training...\n')
-    checkpoint = ModelCheckpoint('QA_e{epoch:02d}-l{loss:.3f}-cl{out_loss:.3f}-ael{AE_out_loss:.3f}-cac{out_categorical_accuracy:.3f}-aeac{AE_out_categorical_accuracy:.3f}-vl{val_loss:.3f}-vcl{val_out_loss:.3f}-vael{val_AE_out_loss:.3f}-vcac{val_out_categorical_accuracy:.3f}-vaeac{val_AE_out_categorical_accuracy:.3f}_' + str(l1) + '.h5', monitor='val_loss',save_best_only=False)
+    checkpoint = ModelCheckpoint('QA_e{epoch:02d}-l{loss:.3f}-cl{out_loss:.3f}-ael{AE_out_loss:.3f}-cac{out_categorical_accuracy:.3f}-aeac{AE_out_categorical_accuracy:.3f}-vl{val_loss:.3f}-vcl{val_out_loss:.3f}-vael{val_AE_out_loss:.3f}-vcac{val_out_categorical_accuracy:.3f}-vaeac{val_AE_out_categorical_accuracy:.3f}_' + str(l1) + '_' + str(ae_weight) + '.h5', monitor='val_loss',save_best_only=not checkpoint)
     model.fit(
         x,
         [t_cat, x_cat], 

@@ -18,32 +18,26 @@ def sequences_to_matrix(token, x):
     return word_matrix  
 
 def print_wups_acc(answers,predictions,token):
-    print('Converting answers')
-    answers_text = sequences_to_text(token, answers.tolist())
-    answers_matrix = sequences_to_matrix(token, answers.tolist())
-    print('Converting predicted answers')
+    answers = sequences_to_matrix(token, answers.tolist())
     predictions = argmax(predictions,axis=-1).eval()
-    predictions_text = sequences_to_text(token, predictions.tolist())
-    predictions_matrix = sequences_to_matrix(token, predictions.tolist())
+    predictions = sequences_to_matrix(token, predictions.tolist())
     print('\nWUPS measure with threshold 0.9')
     our_element_membership=lambda x,y: wup_measure(x,y)
     our_set_membership= lambda x,A: fuzzy_set_membership_measure(x,A,our_element_membership)
     score_list = list()
     for i in tqdm(range(len(answers))):
-        answer = list(filter(None,answers_matrix[i]))
-        prediction = list(filter(None,predictions_matrix[i]))
+        answer = list(filter(None,answers[i]))
+        prediction = list(filter(None,predictions[i]))
         score_list.append(score_it(answer,prediction,our_set_membership))
     final_score=float(sum(score_list))/float(len(score_list))
     print(final_score)
     print('')
-    acc1_a,acc2_a = accuracy_answers(answers_matrix,predictions_matrix)
+    acc1_a,acc2_a = accuracy_answers(answers,predictions)
     print('Accuracy answers (/question): ' + str(acc1_a))
     print('Accuracy answers (/answer): ' + str(acc2_a))
 
 def print_ae_acc(questions,qpredictions,token):
-    print('Converting questions')
     questions = sequences_to_text(token,np.asarray(questions).tolist())
-    print('Converting predicted questions')
     qpredictions = argmax(qpredictions,axis=-1).eval()
     qpredictions = sequences_to_text(token,np.asarray(qpredictions).tolist())
     acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
@@ -52,15 +46,11 @@ def print_ae_acc(questions,qpredictions,token):
 
 def print_compare(questions,answers,predictions,qpredictions,N,token):
     rand = np.random.choice(5000, N)
-    print('\nConverting questions')
     questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
     if not qpredictions is None:
-        print('Converting predicted questions')
         qpredictions = argmax(qpredictions[rand],axis=-1).eval()
         qpredictions = sequences_to_text(token,np.asarray(qpredictions).tolist())
-    print('Converting answers')
     answers = sequences_to_matrix(token, answers[rand].tolist())
-    print('Converting predicted answers')
     predictions = argmax(predictions[rand],axis=-1).eval()
     predictions = sequences_to_matrix(token, predictions.tolist())
     print('')

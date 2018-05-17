@@ -8,7 +8,7 @@ import os.path
 import argparse
 import sys
 
-def build_model(l1, voc, img_dim):
+def build_model(drop, l1, voc, img_dim):
     print('Building model...\n')
     # Build text based input. embedding and LSTM layer
     # The Input layer is only there for convenience and doesn't do anything
@@ -38,7 +38,7 @@ def build_model(l1, voc, img_dim):
     # We merge the model, add a dropout to combat some overfitting and fit.
     merged = concatenate([word_encoding,visual_encoding]) # Concatenate an Autoencoder hidden layer here
     # We might want a LSTM layer with return sequence set to true here?
-    dropout = Dropout(0.5)(merged)
+    dropout = Dropout(drop)(merged)
     repeat_vector = RepeatVector(11)(dropout)
     answer_layer = LSTM(
     voc,
@@ -62,9 +62,9 @@ def build_model(l1, voc, img_dim):
     # plot_model(model, to_file='model.png')
     return model
 
-def train_model(model,x,images,t_cat,e,batch,l1):
+def train_model(model,x,images,t_cat,e,batch,l1,ae_weight,checkpoint):
     print('Training...\n')
-    checkpoint = ModelCheckpoint('VQA_e{epoch:02d}-l{loss:.3f}-acc{categorical_accuracy:.3f}-vl{val_loss:.3f}-vacc{val_categorical_accuracy:.3f}_' + str(l1) + '.h5', monitor='val_loss',save_best_only=False)
+    checkpoint = ModelCheckpoint('VQA_e{epoch:02d}-l{loss:.3f}-acc{categorical_accuracy:.3f}-vl{val_loss:.3f}-vacc{val_categorical_accuracy:.3f}_' + str(l1) + '_' + str(ae_weight) + '.h5', monitor='val_loss',save_best_only=not checkpoint)
     model.fit(
         [x, images],
         t_cat, 
