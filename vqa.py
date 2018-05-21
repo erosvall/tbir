@@ -16,13 +16,13 @@ import os.path
 import argparse
 import sys
 
-def model(epochs,drop,ae_weight,ld1,batch,load,textonly,visualonly,improve,checkpoint):
+def model(epochs,drop,ae_weight,ld1,batch,load,test,textonly,visualonly,improve,checkpoint):
     filestart = 'Text' if textonly else 'Visual' if visualonly else 'Full'
     file_id = filestart + '_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '_' + str(ae_weight) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x,train_x_cat, train_imgs, train_t, train_t_cat,train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
-    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset("qa.894.raw.test.txt", 6795 , train_token, img_filename="img_features.csv")
+    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset(test, 6795 , train_token, img_filename="img_features.csv")
 
     # Build and train Question Answerer
     if load:
@@ -74,7 +74,9 @@ def main(argv=None):
     argparser = argparse.ArgumentParser(description='A visual question answerer.')
     # optional arguments
     argparser.add_argument('--load', type=str,
-                           help='Filename of existing model')
+                           help='Filename of existing model, default None')
+    argparser.add_argument('--test', type=str,
+                           help='Filename of test data, default qa.894.raw.test.txt')
     argparser.add_argument('--e', type=int,
                            help='Number of epochs, default 1')
     argparser.add_argument('--ld1', type=int,   
@@ -106,6 +108,7 @@ def main(argv=None):
     nbtest = 50
     drop = 0.5
     ae_weight = 1.0
+    test = "qa.894.raw.test.txt"
 
     if args.ld1:
         ld1 = args.ld1
@@ -117,7 +120,8 @@ def main(argv=None):
         drop = args.drop
     if args.aeweight:
         ae_weight = args.aeweight
-
+    if args.test:
+        test = args.test
 
     print('--e Number of epochs: ' + str(epochs))
     print('--ld1 Latent dimension 1: ' + str(ld1))
@@ -128,7 +132,7 @@ def main(argv=None):
 
     InteractiveSession()
 
-    test_x, test_t, qa_answer, qa_question, train_token = model(epochs,drop,ae_weight,ld1,batch,args.load,args.textonly,args.visualonly,args.improve,args.checkpoint)
+    test_x, test_t, qa_answer, qa_question, train_token = model(epochs,drop,ae_weight,ld1,batch,args.load,test,args.textonly,args.visualonly,args.improve,args.checkpoint)
 
     if args.wups:
         postp.print_wups_acc(test_t,qa_answer,train_token)
