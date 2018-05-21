@@ -16,18 +16,18 @@ import os.path
 import argparse
 import sys
 
-def model(epochs,drop,ae_weight,ld1,batch,load,test,textonly,visualonly,improve,checkpoint):
+def model(epochs,drop,ae_weight,ld1,batch,load,q,test,textonly,visualonly,improve,checkpoint):
     filestart = 'Text' if textonly else 'Visual' if visualonly else 'Full'
     file_id = filestart + '_Question_Answerer_' + str(epochs) + '_' + str(ld1) + '_' + str(ae_weight) + '.h5'
 
     # This function fetches the dataset from the file and fills both X and T with k number of datapoints
     train_x,train_x_cat, train_imgs, train_t, train_t_cat,train_N, train_sequence, voc, train_token = prep.load_dataset("qa.894.raw.train.txt", 6795,img_filename="img_features.csv")
-    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset(test, 6795 , train_token, img_filename="img_features.csv")
+    test_x,test_x_cat, test_imgs, test_t,test_t_cat, test_N, test_sequence, _, _ = prep.load_dataset(test, 6795 , train_token, img_filename="img_features.csv",one_question=q)
 
     # Build and train Question Answerer
     if load:
         model = load_model(load)
-        print('\nLoading Question Answerer model from file: ' + load + ' \n')
+        print('\nLoading Visual Question Answerer model from file: ' + load + ' \n')
         if improve:
             if textonly:
                 model = text.train_model(model,train_x,train_x_cat,train_t_cat,epochs,batch,ld1,ae_weight,checkpoint)
@@ -36,10 +36,10 @@ def model(epochs,drop,ae_weight,ld1,batch,load,test,textonly,visualonly,improve,
             else:
                 model = full.train_model(model,train_x,train_imgs,train_x_cat,train_t_cat,epochs,batch,ld1,ae_weight,checkpoint)
     elif os.path.exists(file_id):
-        print('\nQuestion Answerer model with these parameters found, loading model from file: ' + file_id + '\n')
+        print('\nVisual Question Answerer model with these parameters found, loading model from file: ' + file_id + '\n')
         model = load_model(file_id)
     else:
-        print('\nNo question answerer model with these parameters was found, building new model.\n')
+        print('\nNo visual question answerer model with these parameters was found, building new model.\n')
         if textonly:
             model = text.build_model(drop,ae_weight,ld1,voc)
             model = text.train_model(model,train_x,train_x_cat,train_t_cat,epochs,batch,ld1,ae_weight,checkpoint)
@@ -52,7 +52,7 @@ def model(epochs,drop,ae_weight,ld1,batch,load,test,textonly,visualonly,improve,
         model.save(file_id)
         print('\nModel saved to: ' + file_id)
 
-    print('\nEvaluating question answerer on test data')
+    print('\nEvaluating visual question answerer on test data')
     if textonly:
         qa_result = model.evaluate(test_x, [test_t_cat, test_x_cat], batch_size=batch)
         [qa_answer,qa_question] = model.predict(test_x, batch_size=batch)
@@ -63,7 +63,6 @@ def model(epochs,drop,ae_weight,ld1,batch,load,test,textonly,visualonly,improve,
     else:
         qa_result = model.evaluate([test_x,test_imgs], [test_t_cat,test_x_cat], batch_size=batch)
         [qa_answer,qa_question] = model.predict([test_x,test_imgs], batch_size=batch)
-        
     print('Loss: ' + str(qa_result[0]))
     print('Accuracy: ' + str(qa_result[1]))
 
@@ -77,6 +76,8 @@ def main(argv=None):
                            help='Filename of existing model, default None')
     argparser.add_argument('--test', type=str,
                            help='Filename of test data, default qa.894.raw.test.txt')
+    argparser.add_argument('--q', type=str,
+                           help='Pose one question for the visual question answerer')
     argparser.add_argument('--e', type=int,
                            help='Number of epochs, default 1')
     argparser.add_argument('--ld1', type=int,   
@@ -105,7 +106,6 @@ def main(argv=None):
     ld1 = 512
     epochs = 1
     batch = 32
-    nbtest = 50
     drop = 0.5
     ae_weight = 1.0
     test = "qa.894.raw.test.txt"
@@ -132,7 +132,10 @@ def main(argv=None):
 
     InteractiveSession()
 
-    test_x, test_t, qa_answer, qa_question, train_token = model(epochs,drop,ae_weight,ld1,batch,args.load,test,args.textonly,args.visualonly,args.improve,args.checkpoint)
+    test_x, test_t, qa_answer, qa_question, train_token = model(epochs,drop,ae_weight,ld1,batch,
+        args.load,args.q,test,args.textonly,args.visualonly,args.improve,args.checkpoint)
+
+    nbtest = len(test_t)
 
     if args.wups:
         postp.print_wups_acc(test_t,qa_answer,train_token)

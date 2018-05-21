@@ -15,9 +15,13 @@ def load_cnn(filename):
     return images[:,1:]
 
 def match_img_features(questions,img_features):
-    return np.asarray(list(map(lambda x: 
-                img_features[int(x.split('image')[-1].split(' ')[0])-1],
-                questions)))
+    try:
+        imgs = np.asarray(list(map(lambda x: 
+                    img_features[int(x.split('image')[-1].split(' ')[0])-1],
+                    questions)))
+    except ValueError:
+        raise ValueError("Error matching images with questions, please use imageXXXX as the last word in the question")  
+    return imgs
                 
 def preprocess(text, token, maxlen):
     text = token.texts_to_sequences(text)
@@ -26,31 +30,11 @@ def preprocess(text, token, maxlen):
     (N, sequence, voc) = cat_text.shape
     return text, cat_text, N, sequence, voc
 
-def q_preprocess(text, token):  
-    text = token.texts_to_sequences(text)
-    text = pad_sequences(text,maxlen = 30)
-    # text = to_categorical(text, len(token.word_index.items())+1)
-    (N, sequence) = text.shape
-    voc = len(token.word_index.items())+1
-    return text, N, sequence, voc
-
-def a_preprocess(text, token):
-    text = token.texts_to_sequences(text)
-    text = pad_sequences(text,maxlen = 11,padding='post')
-    pre_cat_text = text
-    text = to_categorical(text, len(token.word_index.items())+1)
-    (N, sequence,voc) = text.shape
-    return text, N, sequence, voc, pre_cat_text
-
-def multiple_hot(sequence):
-    sum = sequence[0]
-    for i in range(1,len(sequence)):
-            sum += sequence[i]
-    sum[0] = 0
-    return sum
-
-def load_dataset(filename, k=0, token=None,img_filename=None):  
-    corpus = open(filename).read().lower().splitlines()
+def load_dataset(filename, k=0, token=None,img_filename=None,one_question=None):  
+    if one_question is None:
+        corpus = open(filename).read().lower().splitlines()
+    else:
+        corpus = [one_question.lower(),"None"]
     if not img_filename is None:
         img_features = load_cnn(img_filename)
         questions = corpus[0:2*k:2]

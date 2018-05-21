@@ -45,7 +45,8 @@ def print_ae_acc(questions,qpredictions,token):
     print('Accuracy questions (/word):' + str(acc2_q))
 
 def print_compare(questions,answers,predictions,qpredictions,N,token):
-    rand = np.random.choice(5000, N)
+    # rand = np.random.choice(5000, N)
+    rand = range(0,N)
     questions = sequences_to_text(token,np.asarray(questions)[rand].tolist())
     if not qpredictions is None:
         qpredictions = argmax(qpredictions[rand],axis=-1).eval()
@@ -54,14 +55,7 @@ def print_compare(questions,answers,predictions,qpredictions,N,token):
     predictions = argmax(predictions[rand],axis=-1).eval()
     predictions = sequences_to_matrix(token, predictions.tolist())
     print('')
-    # if not qpredictions is None:
-    #     acc1_q,acc2_q = accuracy_questions(questions,qpredictions)
-    #     print('Accuracy1 Questions: ' + str(acc1_q))
-    #     print('Accuracy2 Questions: ' + str(acc2_q))
     print_questions(questions,qpredictions)
-    # acc1_a,acc2_a = accuracy_answers(answers,predictions)
-    # print('Accuracy1 Answers: ' + str(acc1_a))
-    # print('Accuracy2 Answers: ' + str(acc2_a))
     print_answers(answers,predictions)
 
 def accuracy_answers(answers,predictions):
